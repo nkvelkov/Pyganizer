@@ -38,11 +38,17 @@ class Pyganizer:
             active_tasks = f.readlines()
             for task in active_tasks:
                 parameters = task.split(' ')
+
                 if task is not ' ' and task is not '\n':
-                    new_task = Task(
+                    task_date = (
                         parameters[0], parameters[1],
                         parameters[2], parameters[3],
-                        parameters[4]
+                        parameters[4], parameters[5]
+                    )
+                    new_task = Task(
+                        task_date, parameters[6],
+                        parameters[7], parameters[8],
+                        parameters[9]
                     )
                     self.active_tasks.append(task)
 
