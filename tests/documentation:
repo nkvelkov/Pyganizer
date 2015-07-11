@@ -1,0 +1,45 @@
+Documentation:
+
+The Pyganizer has the following magic methods:
+
+- execute() - Loads saved todos from a file by calling add_saved_moments and then calls start_execution in a separate thread.
+
+- start_execution() - Calls the signal method whenever the time has come for a task to start or when the user has to be notified for an event. It runs in a separate thread. 
+
+- signal() - If the issued todo is task then it adds the task in the active_task list, otherwise it ether removes an event along with its corresponding alert_event or adds it to the active_events list.
+
+- terminate() - terminates the execution of the Pyganizer
+
+- add_saved_moments - reads saved todos from a file and adds them in the self.todos dict and in the active_events and active_taks lists.
+
+- add_event(date, name, message, alert_seconds=0, alert_hours=1, alert_minutes, alert_days=0, alert_months=0) - adds two events in the dictionary. The first is the alert event. When it is signalled it should be added to the active_events list. The second one is the actual event or the deadline-event. When it is signalled it should remove itself and its corresponding alert event from the todos dictionary and from the active_events list if necessary. 
+
+- add_task(start_date, name, message, completeness, priority=1) - adds a task in the dictionary.
+
+- insert_task(self, start_date, task) - adds a task in the dictionary. 
+
+- remove_todo(key, name) - removes the desired todo from the dictionary and from the active_events and active_tasks lists if necessary.
+
+- calculate_date(date, alert_seconds=0, alert_minutes=0, alert_hours=0, alert_days=0, alert_months=0) - used by add_event method to determine when the event should become active.
+The method returns the current datetime of the local timezone if the calculated datetime has already passed or else it returns the datetime acquired by flipping back the date argument with the other arguments of the method correspondingly.
+
+- name_exists(date, target_name) - returns True if a todo with name target_name is present in the dictionary for key date, otherwise returns False. 
+
+Basic functionality:
+- adding an event in the list;
+- removing an event from the list;
+- the application should notify me about any event defined number of hours before an event takes place;
+
+- adding tasks that need to be done before a particular deadline;
+- one should be able to select the priority of their tasks and set the completeness rate of the different tasks;
+- removing taks;
+- the application should give me a notification when I am running out of time with a certain task;
+
+- adding tasks that need to be done before a particular deadline;
+- one should be able to select the priority of their tasks and set the completeness rate of the different tasks;
+- removing taks;
+- the application should give me a notification when I am running out of time with a certain task;
+
+
+
+
