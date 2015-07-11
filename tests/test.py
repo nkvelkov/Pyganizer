@@ -303,6 +303,30 @@ class TestPyganizer(unittest.TestCase):
 
         self.assertFalse(organier.name_exists(start_date, task_message))
 
+    def test_add_to_active_tasks_file(self):
+        organier = Pyganizer()
+        organier.execute()
+
+        utc = arrow.utcnow().to('local')
+        utc_date = utc.replace(seconds=+1)
+        start_date = organier.get_date(utc_date)
+
+        task_name = 'task_name_active'
+        task_message = 'task_message_active'
+        progress = 50
+        priority = 1
+
+        task = Task(start_date, task_name, task_message, progress, priority)
+        organier.insert_task(task)
+
+        time.sleep(3)
+
+        with open("active_tasks.txt", "r") as f:
+            active_tasks = f.readlines()
+            self.assertTrue("{}\n".format(str(task)) in active_tasks)
+
+        organier.terminate()
+
 
 if __name__ == '__main__':
     unittest.main()

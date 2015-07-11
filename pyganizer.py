@@ -34,7 +34,17 @@ class Pyganizer:
             time.sleep(1)
 
     def add_saved_moments(self):
-        moments = []
+        with open("active_tasks.txt", "r") as f:
+            active_tasks = f.readlines()
+            for task in active_tasks:
+                parameters = task.split(' ')
+                if task is not ' ' and task is not '\n':
+                    new_task = Task(
+                        parameters[0], parameters[1],
+                        parameters[2], parameters[3],
+                        parameters[4]
+                    )
+                    self.active_tasks.append(task)
 
         with open('work_data.txt', 'r') as f:
             f.readline()
@@ -66,6 +76,7 @@ class Pyganizer:
                     self.remove_todo(todo)
                 else:
                     self.active_tasks.append(todo)
+                    self.add_to_active_tasks_file(todo)
 
             notification_message = "{} {}\n".format(todo.name, todo.message)
             with open('passed_data.txt', 'a') as f:
@@ -183,7 +194,16 @@ class Pyganizer:
 
     def write_in_file(self, date, todo):
         with open("work_data", "a") as f:
-            f.write("{} {}\n".format(self.stringify_date(date), str(todo)))
+            f.write("{}\n".format(str(todo)))
+
+    def add_to_active_tasks_file(self, task):
+        with open("active_tasks.txt", "a") as f:
+            f.write("{}\n".format(str(task)))
+
+    def update_active_tasks_file(self):
+        with open("active_tasks.txt", "w") as f:
+            for task in self.active_tasks:
+                f.write("{}\n".format(str(task)))
 
     def stringify(self, key):
         target_todos = self.todos[key]
@@ -222,6 +242,7 @@ class Pyganizer:
 
     def remove_active_task(self, task):
         self.active_tasks.pop(self.active_tasks.index(task))
+        self.update_active_tasks_file()
 
     def get_todo(self, date, todo_name):
         for todo in self.todos[date]:
