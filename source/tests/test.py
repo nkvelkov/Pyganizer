@@ -78,7 +78,7 @@ class TestPyganizer(unittest.TestCase):
         utc_date = organier.get_date(utc)
 
         message = 'task_message'
-        task = 'task_event'
+        task = 'task'
         comleteness = 50
         priority = 1
 
@@ -138,7 +138,7 @@ class TestPyganizer(unittest.TestCase):
         organier = Pyganizer()
 
         utc = arrow.utcnow().to('local')
-        date = organier.get_date(utc)
+        date = organier.(utc)
 
         expected_date = (utc.day, utc.month, utc.year,
                          utc.hour, utc.minute, utc.second)
