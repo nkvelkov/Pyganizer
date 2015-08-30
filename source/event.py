@@ -1,11 +1,12 @@
 import arrow
 
 class Event:
-    def __init__(self, datetime, name, message, mode):
+    def __init__(self, datetime, name, message, mode, eid):
         self.date = datetime
         self.name = name
         self.message = message
         self.mode = mode
+        self.eid = eid
 
     def __str__(self):
         return "{} {} {}".format(self.date_to_string(), self.name, self.message)
