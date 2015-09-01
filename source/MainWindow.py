@@ -12,7 +12,8 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QTime, QDate
 import arrow
 from pyganizer import Pyganizer
-from task_encoder import as_task, TaskEncoder
+from task import Task, TaskEncoder, as_task
+from event import Event, EventEncoder, as_event
 import json
 
 class IconWidget(QMainWindow):
@@ -21,39 +22,69 @@ class IconWidget(QMainWindow):
         super().__init__()
         
         self.initUI()
-        self.pyganizer = Pyganizer("pending_tasks.txt", "active_tasks.txt")
+        self.pyganizer = Pyganizer("pending_tasks.txt", "active_tasks.txt",
+                                   "pending_events.txt", "active_events.txt")
 
     def initUI(self):
 
         QToolTip.setFont(QFont('SansSerif', 10))        
         self.setToolTip('This is a <b>Pyganizer</b>.')
        
-        self.add_line_edit_fields()
-        
-        self.add_task_table()
+        self.prepare_tasks_UI()
+        self.prepare_events_UI()
 
-        self.add_date_time_edit()
-        
-        self.add_refresh_button()
-        self.add_task_button()
-        self.prepare()
+        self.prepare_geometry()
         self.center()
 
         self.show()
 
-    def add_task_table(self):
+    def prepare_tasks_UI(self):
+        self.add_task_line_edit_fields()
+        self.add_tasks_table()
+        self.add_task_date_time_edit()
+        
+        self.add_task_refresh_button()
+        self.add_task_button()
+
+    def prepare_events_UI(self):
+        self.add_event_line_edit_fields()
+        self.add_event_start_date_time_edit()
+        self.add_event_end_date_time_edit()
+
+        self.add_events_table()
+        self.add_event_refresh_button()
+        self.add_event_button()
+
+    def add_tasks_table(self):
         self.table = QTextBrowser(self)
         self.table.setReadOnly(True)
         self.table.move(200, 40)
         self.table.resize(self.table.sizeHint())
         self.table.setText(" Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed lacus urna, semper sit amet metus eu, vestibulum tempus arcu. Curabitur ornare condimentum massa id consectetur. Curabitur volutpat odio sollicitudin quam venenatis, sed ornare justo auctor. Aenean aliquet metus non nulla dignissim, sed pellentesque lacus sollicitudin. Etiam interdum quis odio eget. ")
     
-    def add_date_time_edit(self):
-        self.date_time_edit = QDateTimeEdit(self)
-        self.date_time_edit.resize(self.date_time_edit.sizeHint())
-        self.date_time_edit.move(30, 100)
+    def add_events_table(self):
+        self.table = QTextBrowser(self)
+        self.table.setReadOnly(True)
+        self.table.move(200, 450)
+        self.table.resize(self.table.sizeHint())
+        self.table.setText(" Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed lacus urna, semper sit amet metus eu, vestibulum tempus arcu. Curabitur ornare condimentum massa id consectetur. Curabitur volutpat odio sollicitudin quam venenatis, sed ornare justo auctor. Aenean aliquet metus non nulla dignissim, sed pellentesque lacus sollicitudin. Etiam interdum quis odio eget. ")
+    
+    def add_task_date_time_edit(self):
+        self.task_date_time_edit = QDateTimeEdit(self)
+        self.task_date_time_edit.resize(self.task_date_time_edit.sizeHint())
+        self.task_date_time_edit.move(30, 70)
 
-    def add_line_edit_fields(self):
+    def add_event_start_date_time_edit(self):
+        self.event_start_date_time_edit = QDateTimeEdit(self)
+        self.event_start_date_time_edit.resize(self.event_start_date_time_edit.sizeHint())
+        self.event_start_date_time_edit.move(30, 450)
+
+    def add_event_end_date_time_edit(self):
+        self.event_end_date_time_edit = QDateTimeEdit(self)
+        self.event_end_date_time_edit.resize(self.event_end_date_time_edit.sizeHint())
+        self.event_end_date_time_edit.move(30, 420)
+
+    def add_task_line_edit_fields(self):
         self.task_name = QLineEdit('task_name', self)
         self.task_name.resize(self.task_name.sizeHint())
         self.task_name.move(30, 10)
@@ -69,7 +100,16 @@ class IconWidget(QMainWindow):
 
         self.task_priority = QLineEdit('1', self)
         self.task_priority.resize(self.task_priority.sizeHint())
-        self.task_priority.move(30, 160)
+        self.task_priority.move(30, 100)
+
+    def add_event_line_edit_fields(self):
+        self.event_name = QLineEdit('event_name', self)
+        self.event_name.resize(self.event_name.sizeHint())
+        self.event_name.move(30, 480)
+
+        self.event_message = QLineEdit('event_message', self)
+        self.event_message.resize(self.event_message.sizeHint())
+        self.event_message.move(30, 510)
 
     def center(self):
         qr = self.frameGeometry()
@@ -88,21 +128,35 @@ class IconWidget(QMainWindow):
             event.ignore()
             # event.ignore()
     '''
-    def add_refresh_button(self):
+    def add_task_refresh_button(self):
         self.refresh_button = QPushButton('refresh', self)
         self.refresh_button.setToolTip('<b>Refresh task</b>')
         self.refresh_button.clicked.connect(self.load_tasks)
         self.refresh_button.resize(self.refresh_button.sizeHint())
         self.refresh_button.move(200, 10) 
+    
+    def add_event_refresh_button(self):
+        self.event_refresh_button = QPushButton('refresh', self)
+        self.event_refresh_button.setToolTip('<b>Refresh task</b>')
+        self.event_refresh_button.clicked.connect(self.load_tasks)
+        self.event_refresh_button.resize(self.refresh_button.sizeHint())
+        self.event_refresh_button.move(200, 420) 
 
     def add_task_button(self):
         self.task_button = QPushButton('AddTask', self)
         self.task_button.setToolTip('<b>AddTask</b>')
         self.task_button.clicked.connect(self.text_handle_func)
         self.task_button.resize(self.task_button.sizeHint())
-        self.task_button.move(30, 70)   
+        self.task_button.move(30, 160)
 
-    def prepare(self):
+    def add_event_button(self):
+        self.event_button = QPushButton('AddEvent', self)
+        self.event_button.setToolTip('<b>AddEvent</b>')
+        self.event_button.clicked.connect(self.text_handle_func)
+        self.event_button.resize(self.event_button.sizeHint())
+        self.event_button.move(30, 540)
+
+    def prepare_geometry(self):
         self.setGeometry(300, 300, 625, 768)
         self.setWindowTitle('Pyganizer!')
         self.setWindowIcon(QIcon('1440359594_document_text_edit.ico')) 
@@ -123,8 +177,9 @@ class IconWidget(QMainWindow):
         print(start_date)
         print(comleteness)
         print(priority)
- 
+        print(type(start_date))    
         self.pyganizer.add_task(start_date, name, message, comleteness, priority)
+        
         self.task_priority.setText("") 
         self.task_completeness.setText("")
         self.task_message.setText("")
