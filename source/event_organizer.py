@@ -98,6 +98,9 @@ class EventOrganizer(EventScheduler):
     def sorted_events(self):
         return sorted(self.active_events, key=lambda e: e.deadline_datetime)
 
+    def export_ical(self):
+        pass
+
     def init_id(self):
         with open("event_id.txt", "r") as f:
             saved_id = f.readline()

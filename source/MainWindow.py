@@ -10,25 +10,30 @@ import sys
 from PyQt5.QtWidgets import QMainWindow, QTextEdit, QAction, QApplication
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QTime, QDate
+from alert_dialog import AlertDialog
 import arrow
 from pyganizer import Pyganizer
 from task import Task, TaskEncoder, as_task
 from event import Event, EventEncoder, as_event
+from exceptions import InvalidDateError
 import json
 
 class IconWidget(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        
+        self.horizontal_offset = 120
+        self.vertical_offset = 270
+        self.label_x_offset = 10
         self.initUI()
         self.pyganizer = Pyganizer("pending_tasks.txt", "active_tasks.txt",
                                    "pending_events.txt", "active_events.txt")
 
+
     def initUI(self):
 
         QToolTip.setFont(QFont('SansSerif', 10))        
-        self.setToolTip('This is a <b>Pyganizer</b>.')
+        self.setToolTip('This is <b>Pyganizer</b>.')
        
         self.prepare_tasks_UI()
         self.prepare_events_UI()
@@ -39,77 +44,128 @@ class IconWidget(QMainWindow):
         self.show()
 
     def prepare_tasks_UI(self):
-        self.add_task_line_edit_fields()
-        self.add_tasks_table()
-        self.add_task_date_time_edit()
-        
-        self.add_task_refresh_button()
+        self.task_line_edit_fields()
+        self.tasks_table()
+        self.task_date_time_edit()
+
+        self.task_id_label()
+        self.task_id_line_edit()
+        self.remove_task_button()
+        self.change_priority_button()
+        self.change_progress_button()
+
+        self.task_name_label()
+        self.task_message_label()
+        self.task_completeness_label()
+        self.task_priority_label()
+        self.task_datetime_label()
+        self.task_completeness_label()
+        self.task_priority_label()
+        self.task_add_progress_label()
+        self.task_add_priority_label()
+
+        self.tasks_ical_export_button()
+        self.task_refresh_button()
         self.add_task_button()
 
     def prepare_events_UI(self):
-        self.add_event_line_edit_fields()
-        self.add_event_start_date_time_edit()
-        self.add_event_end_date_time_edit()
+        self.event_line_edit_fields()
+        self.events_table()
+        self.event_start_date_time_edit()
+        self.event_end_date_time_edit()
 
-        self.add_events_table()
-        self.add_event_refresh_button()
+        self.event_name_label()
+        self.event_message_label()
+        self.event_start_datetime_label()
+        self.event_end_datetime_label()
+        self.remove_event_button()
+
+        self.events_ical_export_button()
+        self.event_refresh_button()
         self.add_event_button()
 
-    def add_tasks_table(self):
-        self.table = QTextBrowser(self)
-        self.table.setReadOnly(True)
-        self.table.move(200, 40)
-        self.table.resize(self.table.sizeHint())
-        self.table.setText(" Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed lacus urna, semper sit amet metus eu, vestibulum tempus arcu. Curabitur ornare condimentum massa id consectetur. Curabitur volutpat odio sollicitudin quam venenatis, sed ornare justo auctor. Aenean aliquet metus non nulla dignissim, sed pellentesque lacus sollicitudin. Etiam interdum quis odio eget. ")
-    
-    def add_events_table(self):
-        self.table = QTextBrowser(self)
-        self.table.setReadOnly(True)
-        self.table.move(200, 450)
-        self.table.resize(self.table.sizeHint())
-        self.table.setText(" Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed lacus urna, semper sit amet metus eu, vestibulum tempus arcu. Curabitur ornare condimentum massa id consectetur. Curabitur volutpat odio sollicitudin quam venenatis, sed ornare justo auctor. Aenean aliquet metus non nulla dignissim, sed pellentesque lacus sollicitudin. Etiam interdum quis odio eget. ")
-    
-    def add_task_date_time_edit(self):
+    def tasks_table(self):
+        self.task_table = QTextBrowser(self)
+        self.task_table.setReadOnly(True)
+        self.task_table.move(self.horizontal_offset+200, 40)
+        self.task_table.resize(400, 180)
+        self.task_table.setText(" TASKS TABLE Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed lacus urna, semper sit amet metus eu, vestibulum tempus arcu. Curabitur ornare condimentum massa id consectetur. Curabitur volutpat odio sollicitudin quam venenatis, sed ornare justo auctor. Aenean aliquet metus non nulla dignissim, sed pellentesque lacus sollicitudin. Etiam interdum quis odio eget. ")
+
+    def task_date_time_edit(self):
         self.task_date_time_edit = QDateTimeEdit(self)
         self.task_date_time_edit.resize(self.task_date_time_edit.sizeHint())
-        self.task_date_time_edit.move(30, 70)
+        self.task_date_time_edit.move(self.horizontal_offset, 70)
 
-    def add_event_start_date_time_edit(self):
-        self.event_start_date_time_edit = QDateTimeEdit(self)
-        self.event_start_date_time_edit.resize(self.event_start_date_time_edit.sizeHint())
-        self.event_start_date_time_edit.move(30, 450)
-
-    def add_event_end_date_time_edit(self):
-        self.event_end_date_time_edit = QDateTimeEdit(self)
-        self.event_end_date_time_edit.resize(self.event_end_date_time_edit.sizeHint())
-        self.event_end_date_time_edit.move(30, 420)
-
-    def add_task_line_edit_fields(self):
+    def task_line_edit_fields(self):
         self.task_name = QLineEdit('task_name', self)
         self.task_name.resize(self.task_name.sizeHint())
-        self.task_name.move(30, 10)
+        self.task_name.move(self.horizontal_offset, 10)
 
         self.task_message = QLineEdit('task_message', self)
         self.task_message.resize(self.task_message.sizeHint())
-        self.task_message.move(30, 40)
+        self.task_message.move(self.horizontal_offset, 40)
 
         self.task_completeness = QLineEdit('100', self)
         self.task_completeness.setGeometry(QtCore.QRect(10, 70, 13, 27))
         self.task_completeness.resize(self.task_completeness.sizeHint())
-        self.task_completeness.move(30, 130)
+        self.task_completeness.move(self.horizontal_offset, 130)
 
         self.task_priority = QLineEdit('1', self)
         self.task_priority.resize(self.task_priority.sizeHint())
-        self.task_priority.move(30, 100)
+        self.task_priority.move(self.horizontal_offset, 100)
 
-    def add_event_line_edit_fields(self):
+        self.task_add_priority_line_edit()
+        self.task_add_progress_line_edit()
+
+    def tasks_ical_export_button(self):
+        self.tasks_export_button = QPushButton('ical export', self)
+        self.tasks_export_button.setToolTip('<b>Refresh ical file.</b>')
+        self.tasks_export_button.clicked.connect(self.export_tasks_ical)
+        self.tasks_export_button.resize(self.tasks_export_button.sizeHint())
+        self.tasks_export_button.move(self.horizontal_offset+300, 10)
+
+    def task_refresh_button(self):
+        self.refresh_button = QPushButton('refresh', self)
+        self.refresh_button.setToolTip('<b>Refresh tasks</b>')
+        self.refresh_button.clicked.connect(self.load_tasks)
+        self.refresh_button.resize(self.refresh_button.sizeHint())
+        self.refresh_button.move(self.horizontal_offset+200, 10)
+
+    def add_task_button(self):
+        self.task_button = QPushButton('AddTask', self)
+        self.task_button.setToolTip('<b>AddTask</b>')
+        self.task_button.clicked.connect(self.add_task_func)
+        self.task_button.resize(self.task_button.sizeHint())
+        self.task_button.move(self.horizontal_offset, 160)
+
+    def events_table(self):
+        self.event_table = QTextBrowser(self)
+        self.event_table.setReadOnly(True)
+        self.event_table.move(self.horizontal_offset+200, 450)
+        self.event_table.resize(400, 180)
+        self.event_table.setText(" EVENTS TABLELorem ipsum dolor sit amet, consectetur adipiscing elit. Sed lacus urna, semper sit amet metus eu, vestibulum tempus arcu. Curabitur ornare condimentum massa id consectetur. Curabitur volutpat odio sollicitudin quam venenatis, sed ornare justo auctor. Aenean aliquet metus non nulla dignissim, sed pellentesque lacus sollicitudin. Etiam interdum quis odio eget. ")
+
+    def event_start_date_time_edit(self):
+        self.event_start_date_time_edit = QDateTimeEdit(self)
+        self.event_start_date_time_edit.resize(self.event_start_date_time_edit.sizeHint())
+        self.event_start_date_time_edit.move(self.horizontal_offset, 420)
+
+    def event_end_date_time_edit(self):
+        self.event_end_date_time_edit = QDateTimeEdit(self)
+        self.event_end_date_time_edit.resize(self.event_end_date_time_edit.sizeHint())
+        self.event_end_date_time_edit.move(self.horizontal_offset, 450)
+
+    def event_line_edit_fields(self):
         self.event_name = QLineEdit('event_name', self)
         self.event_name.resize(self.event_name.sizeHint())
-        self.event_name.move(30, 480)
+        self.event_name.move(self.horizontal_offset, 480)
 
         self.event_message = QLineEdit('event_message', self)
         self.event_message.resize(self.event_message.sizeHint())
-        self.event_message.move(30, 510)
+        self.event_message.move(self.horizontal_offset, 510)
+
+        self.event_id_line_edit()
+        self.event_id_label()
 
     def center(self):
         qr = self.frameGeometry()
@@ -128,50 +184,156 @@ class IconWidget(QMainWindow):
             event.ignore()
             # event.ignore()
     '''
-    def add_task_refresh_button(self):
-        self.refresh_button = QPushButton('refresh', self)
-        self.refresh_button.setToolTip('<b>Refresh task</b>')
-        self.refresh_button.clicked.connect(self.load_tasks)
-        self.refresh_button.resize(self.refresh_button.sizeHint())
-        self.refresh_button.move(200, 10) 
-    
-    def add_event_refresh_button(self):
-        self.event_refresh_button = QPushButton('refresh', self)
-        self.event_refresh_button.setToolTip('<b>Refresh task</b>')
-        self.event_refresh_button.clicked.connect(self.load_tasks)
-        self.event_refresh_button.resize(self.refresh_button.sizeHint())
-        self.event_refresh_button.move(200, 420) 
 
-    def add_task_button(self):
-        self.task_button = QPushButton('AddTask', self)
-        self.task_button.setToolTip('<b>AddTask</b>')
-        self.task_button.clicked.connect(self.text_handle_func)
-        self.task_button.resize(self.task_button.sizeHint())
-        self.task_button.move(30, 160)
+    def events_ical_export_button(self):
+        self.events_export_button = QPushButton('ical export', self)
+        self.events_export_button.setToolTip('<b>Refresh ical file.</b>')
+        self.events_export_button.clicked.connect(self.export_events_ical)
+        self.events_export_button.resize(self.events_export_button.sizeHint())
+        self.events_export_button.move(self.horizontal_offset+300, 420)
+    
+    def event_refresh_button(self):
+        self.event_refresh_button = QPushButton('refresh', self)
+        self.event_refresh_button.setToolTip('<b>Refresh events</b>')
+        self.event_refresh_button.clicked.connect(self.load_events)
+        self.event_refresh_button.resize(self.refresh_button.sizeHint())
+        self.event_refresh_button.move(self.horizontal_offset+200, 420) 
 
     def add_event_button(self):
         self.event_button = QPushButton('AddEvent', self)
         self.event_button.setToolTip('<b>AddEvent</b>')
-        self.event_button.clicked.connect(self.text_handle_func)
+        self.event_button.clicked.connect(self.add_event_func)
         self.event_button.resize(self.event_button.sizeHint())
-        self.event_button.move(30, 540)
+        self.event_button.move(self.horizontal_offset, 540)
+
+    def task_add_priority_line_edit(self):
+        self.add_priority_line_edit = QLineEdit('pri', self)
+        self.add_priority_line_edit.resize(40, 25)
+        self.add_priority_line_edit.move(self.horizontal_offset+70, self.vertical_offset+60)
+
+    def task_add_progress_line_edit(self):
+        self.add_progress_line_edit = QLineEdit('pro', self)
+        self.add_progress_line_edit.resize(40, 25)
+        self.add_progress_line_edit.move(self.horizontal_offset+70, self.vertical_offset+30)
+
+    def task_id_label(self):
+        self.id_label = QLabel('Enter task id:', self)
+        self.id_label.resize(self.id_label.sizeHint())
+        self.id_label.move(self.horizontal_offset, self.vertical_offset-25)
+
+    def task_add_progress_label(self):
+        self.add_progress_label = QLabel('Progress:', self)
+        self.add_progress_label.resize(self.add_progress_label.sizeHint())
+        self.add_progress_label.move(self.horizontal_offset, self.vertical_offset+30)
+
+    def task_add_priority_label(self):
+        self.add_priority_label = QLabel('Priority:', self)
+        self.add_priority_label.resize(self.add_priority_label.sizeHint())
+        self.add_priority_label.move(self.horizontal_offset, self.vertical_offset+60)
+
+    def task_name_label(self):
+        self.task_name_label = QLabel('Name:', self)
+        self.task_name_label.resize(self.task_name_label.sizeHint())
+        self.task_name_label.move(self.label_x_offset, 10)
+
+    def task_message_label(self):
+        self.task_message_label = QLabel('Message:', self)
+        self.task_message_label.resize(self.task_message_label.sizeHint())
+        self.task_message_label.move(self.label_x_offset, 40)
+
+    def task_datetime_label(self):
+        self.task_datetime_label = QLabel('Datetime:', self)
+        self.task_datetime_label.resize(self.task_datetime_label.sizeHint())
+        self.task_datetime_label.move(self.label_x_offset, 70)
+
+    def task_priority_label(self):
+        self.task_message_label = QLabel('Priority:', self)
+        self.task_message_label.resize(self.task_message_label.sizeHint())
+        self.task_message_label.move(self.label_x_offset, 100)
+
+    def task_completeness_label(self):
+        self.task_message_label = QLabel('Comleteness:', self)
+        self.task_message_label.resize(self.task_message_label.sizeHint())
+        self.task_message_label.move(self.label_x_offset, 130)
+
+    def event_name_label(self):
+        self.event_name_label = QLabel('Name:', self)
+        self.event_name_label.resize(self.task_name_label.sizeHint())
+        self.event_name_label.move(self.label_x_offset, 480)
+
+    def event_message_label(self):
+        self.event_message_label = QLabel('Message:', self)
+        self.event_message_label.resize(self.task_message_label.sizeHint())
+        self.event_message_label.move(self.label_x_offset, 510)
+
+    def event_start_datetime_label(self):
+        self.event_sdatetime_label = QLabel('Alert datetime:', self)
+        self.event_sdatetime_label.resize(self.event_sdatetime_label.sizeHint())
+        self.event_sdatetime_label.move(self.label_x_offset, 420)
+
+    def event_end_datetime_label(self):
+        self.event_edatetime_label = QLabel('End datetime:', self)
+        self.event_edatetime_label.resize(self.event_edatetime_label.sizeHint())
+        self.event_edatetime_label.move(self.label_x_offset, 450)
+
+    def task_id_line_edit(self):
+        self.task_id_line_edit = QLineEdit('id', self)
+        self.task_id_line_edit.resize(self.task_id_line_edit.sizeHint())
+        self.task_id_line_edit.move(self.horizontal_offset+120, self.vertical_offset-30)
+
+    def event_id_label(self):
+        self.event_id_label = QLabel('Event task id:', self)
+        self.event_id_label.resize(self.event_id_label.sizeHint())
+        self.event_id_label.move(self.horizontal_offset, 670)
+
+    def event_id_line_edit(self):
+        self.event_id_line_edit = QLineEdit('id', self)
+        self.event_id_line_edit.resize(self.event_id_line_edit.sizeHint())
+        self.event_id_line_edit.move(self.horizontal_offset+120, 670)
+
+    def remove_event_button(self):
+        self.remove_event_button = QPushButton('remove_event', self)
+        self.remove_event_button.setToolTip('<b>Remove event</b>')
+        self.remove_event_button.clicked.connect(self.remove_event_func)
+        self.remove_event_button.resize(self.remove_event_button.sizeHint())
+        self.remove_event_button.move(self.horizontal_offset+120, 700)
+
+    def remove_task_button(self):
+        self.remove_task_button = QPushButton('remove_task', self)
+        self.remove_task_button.setToolTip('<b>Remove task</b>')
+        self.remove_task_button.clicked.connect(self.remove_task_func)
+        self.remove_task_button.resize(self.remove_task_button.sizeHint())
+        self.remove_task_button.move(self.horizontal_offset+120, self.vertical_offset)
+
+    def change_priority_button(self):
+        self.change_priority_button = QPushButton('change_task_priority', self)
+        self.change_priority_button.setToolTip('<b>Change priority</b>')
+        self.change_priority_button.clicked.connect(self.change_priority_func)
+        self.change_priority_button.resize(self.change_priority_button.sizeHint())
+        self.change_priority_button.move(self.horizontal_offset+120, self.vertical_offset+60)
+
+    def change_progress_button(self):
+        self.change_progress_button = QPushButton('add_task_progress', self)
+        self.change_progress_button.setToolTip('<b>Add progress to the task</b>')
+        self.change_progress_button.clicked.connect(self.change_progress_func)
+        self.change_progress_button.resize(self.change_progress_button.sizeHint())
+        self.change_progress_button.move(self.horizontal_offset+120, self.vertical_offset+30)
 
     def prepare_geometry(self):
-        self.setGeometry(300, 300, 625, 768)
+        self.setGeometry(300, 300, 725, 768)
         self.setWindowTitle('Pyganizer!')
         self.setWindowIcon(QIcon('1440359594_document_text_edit.ico')) 
 
-    def text_handle_func(self):
+    def add_task_func(self):
         name = self.task_name.text()
         message = self.task_message.text()
         comleteness = int(self.task_completeness.text())
         priority = int(self.task_priority.text())
 
-        current_date = self.date_time_edit.date()
-        current_time = self.date_time_edit.time()
-        start_date = arrow.Arrow(current_date.year(), current_date.month(),
-                        current_date.day(), current_time.hour(),
-                        current_time.minute(), current_time.second())
+        current_date = self.task_date_time_edit.date()
+        current_time = self.task_date_time_edit.time()
+        start_date = self.get_arrow_datetime(current_date, current_time)
+
         print(name)
         print(message)
         print(start_date)
@@ -184,27 +346,110 @@ class IconWidget(QMainWindow):
         self.task_completeness.setText("")
         self.task_message.setText("")
         self.task_name.setText("")
-        self.date_time_edit.setDate(QDate(0, 0, 0))
-        self.date_time_edit.setTime(QTime(0, 0))
+        self.task_date_time_edit.setDate(QDate(0, 0, 0))
+        self.task_date_time_edit.setTime(QTime(0, 0))
+
+    def add_event_func(self):
+        name = self.event_name.text()
+        message = self.event_message.text()
+        start_date = self.event_start_date_time_edit.date()
+        start_time = self.event_start_date_time_edit.time()
+        end_date = self.event_end_date_time_edit.date()
+        end_time = self.event_end_date_time_edit.time()
+
+        start_datetime = self.get_arrow_datetime(start_date, start_time)
+        end_datetime = self.get_arrow_datetime(end_date, end_time)
+
+        d = AlertDialog()
+        d.show()
+        print("ffff")
+        try:
+            self.pyganizer.add_event(start_datetime, end_datetime, name, message)
+        except:
+            alert_dialog = AlertDialog()
+            alert_dialog.set_alert_message("InvalidDateError")
+            alert_dialog.show()
+        finally:
+            self.event_message.setText("")
+            self.event_name.setText("")
+            self.event_start_date_time_edit.setDate(QDate(0, 0, 0))
+            self.event_start_date_time_edit.setTime(QTime(0, 0))
+            self.event_end_date_time_edit.setDate(QDate(0, 0, 0))
+            self.event_end_date_time_edit.setTime(QTime(0, 0))
+
+    def get_arrow_datetime(self, current_date, current_time):
+        arrow_datetime = arrow.Arrow(current_date.year(), current_date.month(),
+                current_date.day(), current_time.hour(),
+                current_time.minute(), current_time.second())
+        return arrow_datetime
 
     def load_tasks(self):
-        print("load_tasks")
         with open("active_tasks.txt", "r") as f:
             active_tasks = f.readlines()
-            print(active_tasks)
             self.expose_tasks(active_tasks)
 
     def expose_tasks(self, lines):
         display_content = ''        
         for line in lines:
-            print(line)
-            task = json.loads(line, object_hook=as_task)
-            display_content = '{}{}\n'.format(display_content, str(task))
-        self.table.setText(display_content)
+            task = Task.decode(line)
+            display_content = '{}{}\n'.format(display_content, task)
+        self.task_table.setText(display_content)
+
+    def load_events(self):
+        with open("active_events.txt", "r") as f:
+            active_events = f.readlines()
+            self.expose_events(active_events)
+
+    def expose_events(self, lines):
+        display_content = ''        
+        for line in lines:
+            event = Event.decode(line)
+            display_content = '{}{}\n'.format(display_content, event)
+        self.event_table.setText(display_content)
+
+    def export_tasks_ical(self):
+        self.pyganizer.export_tasks_ical()
+
+    def export_events_ical(self):
+        self.pyganizer.export_events_ical()
+
+    def change_progress_func(self):
+        progress = int(self.add_progress_line_edit.text())
+        target_id = int(self.task_id_line_edit.text())
+
+        self.pyganizer.add_task_progress(target_id, progress)
+
+        self.task_id_line_edit.setText("")
+        self.add_progress_line_edit.setText("")
+
+    def change_priority_func(self):
+        priority = int(self.add_progress_line_edit.text())
+        target_id = int(self.task_id_line_edit.text())
+
+        self.pyganizer.set_task_priority(target_id, priority)
+
+        self.task_id_line_edit.setText("")
+        self.add_progress_line_edit.setText("")
+
+    def remove_task_func(self):
+        target_id = int(self.task_id_line_edit.text())
+        result = self.pyganizer.remove_task(target_id)
+        if result:
+            pass
+
+        self.task_id_line_edit.setText("")
+
+    def remove_event_func(self):
+        target_id = int(self.event_id_line_edit.text())
+        result = self.pyganizer.remove_event(target_id)
+        if result:
+            pass
+
+        self.event_id_line_edit.setText("")
 
 
 if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     ex = IconWidget()
-    sys.exit(app.exec_())  
+    sys.exit(app.exec_())

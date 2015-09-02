@@ -82,6 +82,9 @@ class TaskOrganizer(TaskScheduler):
             saved_id = f.readline()
             self.id = int(saved_id)
 
+    def export_ical(self):
+        pass
+
     def __del__(self):
         with open("task_id.txt", "w") as f:
             f.write("{}".format(self.id+1))

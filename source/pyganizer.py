@@ -13,16 +13,6 @@ class Pyganizer():
         self.event_organizer = EventOrganizer(pending_events, active_events)
         self.event_lock = threading.Lock()
 
-    def prepare_tasks(self):
-        self.task_lock.acquire()
-        self.task_organizer.load_saved_tasks()
-        self.task_lock.release()
-
-    def prepare_events(self):
-        self.event_lock.acquire()
-        self.event_organizer.load_saved_events(event_value) 
-        self.event_lock.release()
-
     def execute(self):
         self.prepare_tasks()
         self.prepare_events()
@@ -53,12 +43,70 @@ class Pyganizer():
     def terminate(self):
         self.termination_flag = True  # lock or atomic
 
+    def prepare_tasks(self):
+        self.task_lock.acquire()
+        self.task_organizer.load_saved_tasks()
+        self.task_lock.release()
+
     def add_task(self, start_date, name, message, comleteness, priority):
         self.task_lock.acquire()
         print(type(start_date))
         self.task_organizer.add_task(start_date, name, message, comleteness, priority)
         self.task_lock.release()
+
+    def remove_task(self, tid):
+        result = True
+        self.task_lock.acquire()
+        result = self.task_organizer.remove_task(tid) 
+        self.task_lock.release()
+        return result
+
+    def set_task_priority(self, tid, priority):
+        result = True
+        self.task_lock.acquire()
+        result = self.task_organizer.set_task_priority(tid, priority) 
+        self.task_lock.release()
+        return result
+
+    def add_task_progress(self, tid, progress):
+        result = True
+        self.task_lock.acquire()
+        result = self.task_organizer.add_task_progress(tid, progress) 
+        self.task_lock.release()
+        return result
     
+    def export_tasks_ical(self):
+        self.task_lock.acquire()
+        self.task_organizer.export_ical()
+        self.task_lock.release()
+
+    def prepare_events(self):
+        self.event_lock.acquire()
+        self.event_organizer.load_saved_events(event_value) 
+        self.event_lock.release()
+
+    def add_event(self, start_datetime, end_datetime, name, message):
+        self.event_lock.acquire()
+        try:
+            self.event_organizer.add_events(start_datetime, end_datetime, name, message) 
+        except InvalidDateError:
+            raise
+        finally:
+            self.event_lock.release()
+
+    def remove_event(self, eid):
+        result = True
+        self.event_lock.acquire()
+        result = self.event_organizer.remove_event(eid) 
+        self.event_lock.release()
+        return result
+
+    def export_events_ical(self):
+        self.event_lock.acquire()
+        self.event_organizer.export_ical() 
+        self.event_lock.release()
+
+
     # to check that out
     def __del__(self):
         self.terminate()
