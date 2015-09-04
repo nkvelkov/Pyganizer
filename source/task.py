@@ -1,7 +1,7 @@
 import json
 from arrow_encoder import ArrowEncoder, as_arrow
-import json
-
+import icalendar
+from icalendar import Calendar
 
 class Task:
     def __init__(self, datetime, name, message, completeness, priority, tid):
@@ -18,18 +18,21 @@ class Task:
     @staticmethod
     def decode(string):
         return json.loads(string, object_hook=as_task)
-
-    def add_progress(self, completeness):
-        self.completeness -= completeness
  
     def __str__(self):
-        return "{0} {1} {2} {3} {4}".format(self.datetime, self.name, self.message, self.completeness, self.priority)
-    
-    def foo(self):
-        return "{0} {1} {2} {3} {4}".format(
-            self.date_to_string(), self.name, self.message,
-            str(self.completeness), str(self.priority)
-        )
+        return "id: {}, starts: {}, name: {}, message: {}, completeness: {}, priority: {}".format(
+                self.tid, self.datetime.humanize(),
+                self.name, self.message,
+                self.completeness, self.priority
+                )
+
+    def to_ical(self):
+        ical_event = icalendar.Event()
+        ical_event.add('dtstart', self.datetime.naive)
+        ical_event.add('summary', self.encode())
+        ical_event['uid'] = self.name
+
+        return ical_event
 
 
 class TaskEncoder(json.JSONEncoder):

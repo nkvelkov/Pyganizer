@@ -6,13 +6,13 @@ from task import Task
 import time
 import calendar   # to add Leap Year notification!
 import arrow
+from dateutil import tz
 
 
 class TaskScheduler:
     def __init__(self):
         self.todos = {}
         self.active_tasks = []
-        self.id = 0;
 
     def passed_date(self, target_date):
         current_moment = arrow.utcnow().to('local')
@@ -20,8 +20,7 @@ class TaskScheduler:
 
     def append_task(self, start_date, name, message, completeness, priority=1):
         current_moment = arrow.utcnow().to('local')
-        print(type(start_date))
-        print(type(current_moment))
+
         if start_date < current_moment:
             start_date = current_moment
 
@@ -42,10 +41,10 @@ class TaskScheduler:
             self.insert_task(task)
 
     def insert_task(self, task):
-        if not task.date in self.todos.keys():
-            self.todos[task.date] = []
+        if not task.datetime in self.todos.keys():
+            self.todos[task.datetime] = []
         task.id = self.get_id()
-        self.todos[task.date].append(task)
+        self.todos[task.datetime].append(task)
 
     def activate_task(self, task):
         self.remove_pending_task(task)
@@ -117,8 +116,14 @@ class TaskScheduler:
         {key: self.todos[key] for key in keys if self.todos[key] != []}
 
     def get_id(self):
-        self.id = self.id + 1
-        return self.id
+        with open("task_id.txt", "r") as f:
+            saved_id = f.readline()
+            result_id = int(saved_id) + 1
+
+            f.truncate()
+            f.write(str(result_id))
+
+            return result_id
 
     def remove_active_task(self, task):
         self.active_tasks.pop(self.active_tasks.index(task))

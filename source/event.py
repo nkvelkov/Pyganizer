@@ -1,4 +1,6 @@
 from arrow_encoder import ArrowEncoder, as_arrow
+import icalendar
+from icalendar import Calendar
 import json
 import arrow
 
@@ -18,6 +20,21 @@ class Event:
     def decode(string):
         return json.loads(string, object_hook=as_event)
 
+    def __str__(self):
+        return "id: {}, starts: {}, ends: {}, name: {}, message: {}".format(
+                self.eid, self.start_datetime.humanize(),
+                self.deadline_datetime.humanize(),
+                self.name, self.message
+                )
+
+    def to_ical(self):
+        ical_event = icalendar.Event()
+        ical_event.add('dtstart', self.start_datetime.naive)
+        ical_event.add('dtend', self.deadline_datetime.naive)
+        ical_event.add('summary', self.encode())
+        ical_event['uid'] = self.name
+
+        return ical_event
 
 class EventEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -42,6 +59,6 @@ def as_event(dct):
 
         decoded_datetime = json.loads(dct['deadline_datetime'], object_hook=as_arrow)
         dct['deadline_datetime'] = decoded_datetime
-
         return Event(**dct)
     return dct
+

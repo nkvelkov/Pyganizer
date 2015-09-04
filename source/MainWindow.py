@@ -12,11 +12,16 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QTime, QDate
 from alert_dialog import AlertDialog
 import arrow
-from pyganizer import Pyganizer
+from pyganizer import *
 from task import Task, TaskEncoder, as_task
 from event import Event, EventEncoder, as_event
-from exceptions import InvalidDateError
+from my_exceptions import *
 import json
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from dateutil import tz
+
 
 class IconWidget(QMainWindow):
     
@@ -26,9 +31,11 @@ class IconWidget(QMainWindow):
         self.vertical_offset = 270
         self.label_x_offset = 10
         self.initUI()
-        self.pyganizer = Pyganizer("pending_tasks.txt", "active_tasks.txt",
-                                   "pending_events.txt", "active_events.txt")
-
+        self.tasks_ical = 'tasks.ics'
+        self.events_ical = 'events.ics'
+        self.pyganizer = Pyganizer("pending_tasks.txt", "active_tasks.txt", self.tasks_ical,
+                                   "pending_events.txt", "active_events.txt", self.events_ical)
+        self.pyganizer.execute()
 
     def initUI(self):
 
@@ -40,6 +47,9 @@ class IconWidget(QMainWindow):
 
         self.prepare_geometry()
         self.center()
+
+        self.load_tasks()
+        self.load_events()
 
         self.show()
 
@@ -64,6 +74,10 @@ class IconWidget(QMainWindow):
         self.task_add_progress_label()
         self.task_add_priority_label()
 
+        self.task_combo_text = 'local'
+        self.task_combo()
+        self.task_combo_label()
+
         self.tasks_ical_export_button()
         self.task_refresh_button()
         self.add_task_button()
@@ -79,6 +93,10 @@ class IconWidget(QMainWindow):
         self.event_start_datetime_label()
         self.event_end_datetime_label()
         self.remove_event_button()
+
+        self.event_combo_text = 'local'
+        self.event_combo()
+        self.event_combo_label()
 
         self.events_ical_export_button()
         self.event_refresh_button()
@@ -136,7 +154,7 @@ class IconWidget(QMainWindow):
         self.task_button.setToolTip('<b>AddTask</b>')
         self.task_button.clicked.connect(self.add_task_func)
         self.task_button.resize(self.task_button.sizeHint())
-        self.task_button.move(self.horizontal_offset, 160)
+        self.task_button.move(self.horizontal_offset, 190)
 
     def events_table(self):
         self.event_table = QTextBrowser(self)
@@ -204,7 +222,7 @@ class IconWidget(QMainWindow):
         self.event_button.setToolTip('<b>AddEvent</b>')
         self.event_button.clicked.connect(self.add_event_func)
         self.event_button.resize(self.event_button.sizeHint())
-        self.event_button.move(self.horizontal_offset, 540)
+        self.event_button.move(self.horizontal_offset, 570)
 
     def task_add_priority_line_edit(self):
         self.add_priority_line_edit = QLineEdit('pri', self)
@@ -258,7 +276,7 @@ class IconWidget(QMainWindow):
 
     def event_name_label(self):
         self.event_name_label = QLabel('Name:', self)
-        self.event_name_label.resize(self.task_name_label.sizeHint())
+        self.event_name_label.resize(self.event_name_label.sizeHint())
         self.event_name_label.move(self.label_x_offset, 480)
 
     def event_message_label(self):
@@ -282,7 +300,7 @@ class IconWidget(QMainWindow):
         self.task_id_line_edit.move(self.horizontal_offset+120, self.vertical_offset-30)
 
     def event_id_label(self):
-        self.event_id_label = QLabel('Event task id:', self)
+        self.event_id_label = QLabel('Enter event id:', self)
         self.event_id_label.resize(self.event_id_label.sizeHint())
         self.event_id_label.move(self.horizontal_offset, 670)
 
@@ -327,21 +345,24 @@ class IconWidget(QMainWindow):
     def add_task_func(self):
         name = self.task_name.text()
         message = self.task_message.text()
-        comleteness = int(self.task_completeness.text())
-        priority = int(self.task_priority.text())
+        comleteness = self.task_completeness.text()
+        priority = self.task_priority.text()
 
-        current_date = self.task_date_time_edit.date()
-        current_time = self.task_date_time_edit.time()
-        start_date = self.get_arrow_datetime(current_date, current_time)
+        if name == '' or message == '' or not comleteness.isnumeric() or not priority.isnumeric():
+                self.alert("Incorrect input!")
+        else:
+            comleteness = int(comleteness)
+            priority = int(priority)
 
-        print(name)
-        print(message)
-        print(start_date)
-        print(comleteness)
-        print(priority)
-        print(type(start_date))    
-        self.pyganizer.add_task(start_date, name, message, comleteness, priority)
-        
+            current_date = self.task_date_time_edit.date()
+            current_time = self.task_date_time_edit.time()
+            timezone = self.task_combo_text
+
+            start_date = self.get_arrow_datetime(current_date, current_time, timezone)
+
+            self.pyganizer.add_task(start_date, name, message, comleteness, priority)
+            self.alert("Successfully added the task")
+
         self.task_priority.setText("") 
         self.task_completeness.setText("")
         self.task_message.setText("")
@@ -352,35 +373,36 @@ class IconWidget(QMainWindow):
     def add_event_func(self):
         name = self.event_name.text()
         message = self.event_message.text()
-        start_date = self.event_start_date_time_edit.date()
-        start_time = self.event_start_date_time_edit.time()
-        end_date = self.event_end_date_time_edit.date()
-        end_time = self.event_end_date_time_edit.time()
 
-        start_datetime = self.get_arrow_datetime(start_date, start_time)
-        end_datetime = self.get_arrow_datetime(end_date, end_time)
+        if name == '' or message == '':
+                self.alert("Incorrect input!")
+        else:
+            start_date = self.event_start_date_time_edit.date()
+            start_time = self.event_start_date_time_edit.time()
+            end_date = self.event_end_date_time_edit.date()
+            end_time = self.event_end_date_time_edit.time()
+            timezone = self.event_combo_text
 
-        d = AlertDialog()
-        d.show()
-        print("ffff")
-        try:
-            self.pyganizer.add_event(start_datetime, end_datetime, name, message)
-        except:
-            alert_dialog = AlertDialog()
-            alert_dialog.set_alert_message("InvalidDateError")
-            alert_dialog.show()
-        finally:
-            self.event_message.setText("")
-            self.event_name.setText("")
-            self.event_start_date_time_edit.setDate(QDate(0, 0, 0))
-            self.event_start_date_time_edit.setTime(QTime(0, 0))
-            self.event_end_date_time_edit.setDate(QDate(0, 0, 0))
-            self.event_end_date_time_edit.setTime(QTime(0, 0))
+            start_datetime = self.get_arrow_datetime(start_date, start_time, timezone)
+            end_datetime = self.get_arrow_datetime(end_date, end_time, timezone)     
 
-    def get_arrow_datetime(self, current_date, current_time):
+            try:
+                self.pyganizer.add_event(start_datetime, end_datetime, name, message)
+                self.alert("Successfully added the event.")
+            except InvalidDateError:
+                self.alert("You entered incorrect datetimes.")
+
+        self.event_message.setText("")
+        self.event_name.setText("")
+        self.event_start_date_time_edit.setDate(QDate(0, 0, 0))
+        self.event_start_date_time_edit.setTime(QTime(0, 0))
+        self.event_end_date_time_edit.setDate(QDate(0, 0, 0))
+        self.event_end_date_time_edit.setTime(QTime(0, 0))
+
+    def get_arrow_datetime(self, current_date, current_time, timezone):
         arrow_datetime = arrow.Arrow(current_date.year(), current_date.month(),
                 current_date.day(), current_time.hour(),
-                current_time.minute(), current_time.second())
+                current_time.minute(), current_time.second(), tzinfo=timezone)
         return arrow_datetime
 
     def load_tasks(self):
@@ -409,44 +431,111 @@ class IconWidget(QMainWindow):
 
     def export_tasks_ical(self):
         self.pyganizer.export_tasks_ical()
+        self.alert("Successfully exported to {}".format(self.tasks_ical))
 
     def export_events_ical(self):
         self.pyganizer.export_events_ical()
+        self.alert("Successfully exported to {}".format(self.events_ical))
 
     def change_progress_func(self):
-        progress = int(self.add_progress_line_edit.text())
-        target_id = int(self.task_id_line_edit.text())
+        progress = self.add_progress_line_edit.text()
+        target_id = self.task_id_line_edit.text()
 
-        self.pyganizer.add_task_progress(target_id, progress)
+        if not target_id.isnumeric() or not progress.isnumeric():
+            self.alert("Incorrect input! Progress should be numeric.")
+        else: 
+            target_id = int(target_id)
+            progress = int(progress)
+            result = self.pyganizer.add_task_progress(target_id, progress)
+            if not result:
+                self.alert("No such id!")
 
         self.task_id_line_edit.setText("")
         self.add_progress_line_edit.setText("")
 
     def change_priority_func(self):
-        priority = int(self.add_progress_line_edit.text())
-        target_id = int(self.task_id_line_edit.text())
+        priority = self.add_priority_line_edit.text()
+        target_id = self.task_id_line_edit.text()
 
-        self.pyganizer.set_task_priority(target_id, priority)
+        if not target_id.isnumeric() or not priority.isnumeric():
+            self.alert("Incorrect input! Priority should be numeric.")
+        else:
+            priority = int(priority)
+            target_id = int(target_id)
+            result = self.pyganizer.set_task_priority(target_id, priority)
+            if not result:
+                self.alert("No such id!")
 
         self.task_id_line_edit.setText("")
-        self.add_progress_line_edit.setText("")
+        self.add_priority_line_edit.setText("")
 
     def remove_task_func(self):
-        target_id = int(self.task_id_line_edit.text())
-        result = self.pyganizer.remove_task(target_id)
-        if result:
-            pass
+        target_id = self.task_id_line_edit.text()
+
+        if not target_id.isnumeric():
+            self.alert("Incorrect input!")
+        else:
+            target_id = int(target_id)
+            result = self.pyganizer.remove_task(target_id)
+            if not result:
+                self.alert("No such id!")
 
         self.task_id_line_edit.setText("")
 
     def remove_event_func(self):
-        target_id = int(self.event_id_line_edit.text())
-        result = self.pyganizer.remove_event(target_id)
-        if result:
-            pass
+        target_id = self.event_id_line_edit.text()
+
+        if not target_id.isnumeric():
+            self.alert("Incorrect input!")
+        else:
+            target_id = int(target_id)
+            result = self.pyganizer.remove_event(target_id)
+            if not result:
+                self.alert("No such id!")
 
         self.event_id_line_edit.setText("")
 
+    def alert(self, alert_message):
+        QMessageBox.information(self, "Info Box",
+                                alert_message)
+
+    def task_combo_label(self):
+        self.task_combo_label = QLabel('Timezone:', self)
+        self.task_combo_label.resize(self.task_combo_label.sizeHint())
+        self.task_combo_label.move(self.label_x_offset, 160)
+
+    def task_combo(self):
+        self.task_combo = QComboBox(self)
+        self.task_combo.addItem('local')
+        self.task_combo.addItem('utc')
+        self.task_combo.addItem('US/Pacific')
+        self.task_combo.addItem('Europe/Berlin')
+
+        self.task_combo.move(self.horizontal_offset, 160)
+
+        self.task_combo.activated[str].connect(self.onTaskComboActivated)                
+        
+    def onTaskComboActivated(self, text):
+        self.task_combo_text = text
+
+    def event_combo_label(self):
+        self.event_combo_label = QLabel('Timezone:', self)
+        self.event_combo_label.resize(self.event_combo_label.sizeHint())
+        self.event_combo_label.move(self.label_x_offset, 540)
+
+    def event_combo(self):
+        self.event_combo = QComboBox(self)
+        self.event_combo.addItem('local')
+        self.event_combo.addItem('utc')
+        self.event_combo.addItem('US/Pacific')
+        self.event_combo.addItem('Europe/Berlin')
+
+        self.event_combo.move(self.horizontal_offset, 540)
+
+        self.event_combo.activated[str].connect(self.onEventComboActivated)                
+        
+    def onEventComboActivated(self, text):
+        self.event_combo_text = text
 
 if __name__ == '__main__':
 

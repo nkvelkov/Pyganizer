@@ -2,21 +2,24 @@ import threading
 from task_organizer import TaskOrganizer
 from event_organizer import EventOrganizer
 from file_worker import FileWorker
+from my_exceptions import InvalidDateError
 
 
 class Pyganizer():
-    def __init__(self, pending_tasks, active_tasks, pending_events, active_events):
+    def __init__(self, pending_tasks_file, active_tasks_file,
+                 ical_tasks_file, pending_events_file,
+                 active_events_file, ical_events_file):
         self.termination_flag = False
-        self.task_organizer = TaskOrganizer(pending_tasks, active_tasks)
+        self.task_organizer = TaskOrganizer(pending_tasks_file, active_tasks_file, ical_tasks_file)
         self.task_lock = threading.Lock()
 
-        self.event_organizer = EventOrganizer(pending_events, active_events)
+        self.event_organizer = EventOrganizer(pending_events_file, active_events_file, ical_events_file)
         self.event_lock = threading.Lock()
 
-    def execute(self):
         self.prepare_tasks()
         self.prepare_events()
 
+    def execute(self):
         thread = threading.Thread(target=self.start_execution)
         thread.start()
 
@@ -51,7 +54,6 @@ class Pyganizer():
     def add_task(self, start_date, name, message, comleteness, priority):
         self.task_lock.acquire()
         print(type(start_date))
-        self.task_organizer.add_task(start_date, name, message, comleteness, priority)
         self.task_lock.release()
 
     def remove_task(self, tid):
@@ -82,13 +84,13 @@ class Pyganizer():
 
     def prepare_events(self):
         self.event_lock.acquire()
-        self.event_organizer.load_saved_events(event_value) 
+        self.event_organizer.load_saved_events() 
         self.event_lock.release()
 
     def add_event(self, start_datetime, end_datetime, name, message):
         self.event_lock.acquire()
         try:
-            self.event_organizer.add_events(start_datetime, end_datetime, name, message) 
+            self.event_organizer.add_event(start_datetime, end_datetime, name, message) 
         except InvalidDateError:
             raise
         finally:
@@ -105,7 +107,6 @@ class Pyganizer():
         self.event_lock.acquire()
         self.event_organizer.export_ical() 
         self.event_lock.release()
-
 
     # to check that out
     def __del__(self):

@@ -6,13 +6,13 @@ from task import Task
 import time
 import calendar   # to add Leap Year notification!
 import arrow
-import exceptions
+from my_exceptions import *
+
 
 class EventScheduler:
     def __init__(self):
         self.todos = {}  # should be read from a file
         self.active_events = []
-        self.id = 0;
 
     def add_event(self, start_date, deadline_date, name, message):
         if self.passed_date(deadline_date) or start_date > deadline_date:
@@ -41,12 +41,12 @@ class EventScheduler:
         self.todos[date].append(event)
 
     def add_multiple_active_events(self, events):
-        self.active_tasks.extend(list(tasks))
+        self.active_events.extend(list(events))
         for event in events:
             self.add_event_by_date(event.deadline_datetime, event)
 
     def add_multiple_pending_events(self, events):
-        self.active_tasks.extend(list(tasks))
+        self.active_events.extend(list(events))
         for event in events:
             self.add_event_by_date(event.deadline_datetime, event)
 
@@ -61,7 +61,7 @@ class EventScheduler:
 
     def find_active_event(self, target_id):
         for todo in self.active_events:
-            if todo.tid == target_id:
+            if todo.eid == target_id:
                 return todo
         return None
 
@@ -74,7 +74,7 @@ class EventScheduler:
     def remove_by_id(self, target_id):
         event = self.find_active_event(target_id)
         if event is not None:
-            remove_todo(event)
+            self.remove_todo(event)
             return True
         return False
 
@@ -90,7 +90,7 @@ class EventScheduler:
                 self.todos[start_key].pop(self.todos[start_key].index(todo))
         
         if end_key in self.todos.keys():
-            if todo in self.todo[end_key]:
+            if todo in self.todos[end_key]:
                 self.todos[end_key].pop(self.todos[end_key].index(todo))
 
         self.remove_empty_entries()
@@ -104,8 +104,14 @@ class EventScheduler:
         return target_date < current_moment
 
     def get_id(self):
-        self.id = self.id + 1
-        return self.id
+        with open("event_id.txt", "r") as f:
+            saved_id = f.readline()
+            result_id = int(saved_id) + 1
+
+            f.truncate()
+            f.write(str(result_id))
+
+            return result_id
 
     def remove_active_event(self, event):
         self.active_events.pop(self.active_events.index(event))
@@ -138,10 +144,10 @@ class EventScheduler:
             return self.get_date_tuple(current_moment)
         return self.get_date_tuple(alert_time)
 
-    def add_event(self, date, name, message, alert_seconds=0, alert_minutes=0,
+    def add_event_with_date_offset(self, date, name, message, alert_seconds=0, alert_minutes=0,
                   alert_hours=1, alert_days=0, alert_months=0):
         # date = self.get_date_tuple(date)
-        arrow = arrow.utcnow().to('local')
+        a = arrow.utcnow().to('local')
         alert_moment = self.calculate_date(
             date, alert_seconds,
             alert_hours, alert_days,
