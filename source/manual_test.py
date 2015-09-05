@@ -1,4 +1,197 @@
-import Qt
+from task import Task
+from event import Event
+from arrow_encoder import ArrowEncoder, as_arrow
+import json
+import arrow
+import icalendar
+from icalendar import Calendar
+
+a = arrow.Arrow(2015, 9, 5, 0, 25, 0, 0, tzinfo='local')
+
+print(a)
+
+current_moment = arrow.now()
+print(current_moment)
+print(current_moment > a)
+print(a.to('utc'))
+print(current_moment.to('utc'))
+print(current_moment.to('utc') > a.to('utc'))
+
+with open("pending_events.txt", "w") as d:
+    d.truncate()
+ 
+
+def get_id():
+    result_id = 1  
+    with open("work_files/task_id.txt", "r") as f:
+        saved_id = f.readline()
+        if saved_id.isnumeric():
+            result_id = int(saved_id) + 1
+
+    with open("work_files/task_id.txt", "w") as f:
+        f.write(str(result_id))
+    
+    return result_id
+
+
+print(get_id())
+print(get_id())
+print(get_id())
+print(get_id())
+print(get_id())
+print(get_id())
+
+a = arrow.utcnow().to('local')
+cal = Calendar()
+cal['summary'] = 'Calendar '
+e = icalendar.Event()
+e['uid'] = '32'
+e.add('dtstart', a.naive)
+e['dtend'] = 'dad'
+cal.add_component(e)
+
+print(cal.to_ical())
+
+print(a.naive)
+evt = Event(a, a, 2, 1, 2, 2)
+e1 = Event(a, a, 2, 1, 22, 22)
+t = Task(a, 2, 3, 4, 5, 6)
+t1 = Task(a, 2, 3, 4, 52, 21)
+
+with open('active_events.txt', "w") as f:
+    f.write("{}\n".format(evt.encode()))
+    f.write("{}\n".format(e1.encode()))
+
+with open('active_events.txt', "r") as f:
+    lines = f.readlines()
+    for line in lines:
+        e = Event.decode(line)
+        print(e)
+        print(type(e))
+
+try:
+    foo()
+    print("bar")
+except:
+    raise
+
+
+
+with open('active_tasks.txt', "w") as f:
+    f.write("{}\n".format(t.encode()))
+    f.write("{}\n".format(t1.encode()))
+
+d = t.encode()
+r = Task.decode(d)
+print(r)
+print(type(r))
+
+k = evt.encode()
+print(k)
+
+o = Event.decode(k)
+print(o)
+print(type(o))
+
+d = t.encode()
+print(d)
+print(type(d))
+
+r = Task.decode(d)
+print(r)
+print(type(r))
+
+print(k)
+with open('active_events.txt', "w") as f:
+    f.write("{}\n".format(k))
+
+
+k = json.dumps(a, cls=ArrowEncoder)
+print(k)
+res = json.loads(k, object_hook=as_arrow)
+print(res)
+print(type(res))
+class PyganizerError(Exception):
+    def __init__(self):
+        self.message = "PyganizeError"
+
+class TodoNameExistsError(PyganizerError):
+    def __init__(self):
+        super().__init__()
+        self.message = "TodoNameExistsError"
+
+def foo():
+    raise PyganizerError
+
+cal = Calendar()
+cal['dtstart'] = '20050404T080000'
+cal.to_ical()
+print(cal)
+
+ss = set()
+
+
+ss.add(evt)
+ss.add(t)
+print(ss)
+
+class A:
+    def __init__(self, l):
+        self.l = l;
+
+    def __del__(self):
+        print("de")
+
+class B(A):
+    def __init__(self):
+        super().__init__('b')
+
+class C(A):
+    def __init__(self):
+        super().__init__('c')
+
+b = B()
+c = C()
+print(b.l)
+print(c.l)
+
+
+
+with open("work_data", "w") as f:
+    f.truncate()
+            
+
+
+print(a.tzinfo)
+print(type(a))
+
+k = json.dumps(a, cls=ArrowEncoder)
+print(k)
+res = json.loads(k, object_hook=as_arrow)
+print(res)
+print(type(res))
+
+print("adfasdfasdfasdfasdf")
+
+task = Task(a, 'n;', 'm', 2, 1, 20)
+s = json.dumps(task, cls=TaskEncoder)
+print(s)
+
+a = arrow.utcnow().to('local')
+# t = json.loads('{"__task__": true, "id": 3, "datetime": a, "name": "n", "message": "mes", "completeness": 2, "priority": 1}',
+  #   object_hook=as_task)
+
+# print(t)
+# print(type(t))
+print("tt folloing")
+tt = json.loads(s, object_hook=as_task)
+print(tt)
+print(type(tt))
+print(tt is Task)
+# tt.pop('__task__')
+# ta = Task(**tt)
+# print(type(ta))
+print("\n\n\n")
 '''
 import arrow
 import threading
@@ -65,7 +258,7 @@ print(string)
 
 newd = json.loads(string)
 print(newd)
-'''
+
 class MyMethod:
     def __init__(self, func):
         self.func = func
@@ -84,12 +277,12 @@ class Python:
 # Bound methods: Проста имплементация!
 
 snake = Python()
+snake.greet
 snake.greet() # 'My name issss Monty'
 snake.name = 'Nagini'
 # Python.greet() # TypeError: <lambda>() takes exactly 1 argument (0 given)
 Python.greet(snake) # 'My name issss Nagini'
 
-'''
 class B:
     def __get__(self, instance, owner):
         return "You came to the wrong neighborhood, motherflower!{}".format(owner)

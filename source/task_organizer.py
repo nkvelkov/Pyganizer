@@ -17,8 +17,8 @@ class TaskOrganizer(TaskScheduler):
         self.file_worker = FileWorker(pending_tasks_file, active_tasks_file, ical_file)
         self.ical_file = ical_file
 
-    def add_task(self, start_date, name, message, completeness, priority=1):
-        task = self.append_task(start_date, name, message, completeness, priority)
+    def add_task(self, start_date, name, message, completeness, priority=1, timezone='local'):
+        task = self.append_task(start_date, name, message, completeness, priority, timezone)
         self.file_worker.add_todo(task)
 
     def add_task_progress(self, target_id, progress):
@@ -49,6 +49,7 @@ class TaskOrganizer(TaskScheduler):
 
     def load_saved_pending_tasks(self):
         todos = self.file_worker.get_saved_pending_todos()
+
         filtered = self.filter_passed_tasks(todos)
 
         TaskScheduler.add_multiple_pending_tasks(self, filtered[0])
@@ -57,29 +58,40 @@ class TaskOrganizer(TaskScheduler):
         self.file_worker.update_all_files(self.enumerate_todos(), self.sorted_tasks()) # to fix this implementation
 
     def filter_passed_tasks(self, todos):
-        pending_tasks = set()
-        active_tasks = set()
+        pending_tasks = []
+        active_tasks = []
 
         for todo in todos:
             if self.passed_todo(todo):
-                active_tasks.add(todo)
+                active_tasks.append(todo)
             else:
-                pending_tasks.add(todo)
+                pending_tasks.append(todo)
         return (pending_tasks, active_tasks)
 
     def activate_pending_task(self, task):
-        TaskScheduler.activate_task(self, task)
+        TaskScheduler._activate_task(self, task)
         self.file_worker.update_all_files(self.enumerate_todos(), self.sorted_tasks())
-
-    def handle_tasks(self, tasks):
-        for task in tasks:
-            self.active_tasks(task)
 
     def sorted_tasks(self):
         return sorted(self.active_tasks, key=lambda t: t.priority)
 
     def export_ical(self):
         self.file_worker.update_ical_file(self.active_tasks)
+
+    def handle_tasks(self, tasks):
+        for task in tasks:
+            self.activate_pending_task(task)
+
+    def has_moment(self, moment):
+        for key in self.todos.keys():
+            if key < moment or key is moment:
+                return True
+        return False
+
+    def handle_moment(self, moment):
+        for key in self.todos.keys():
+            if key < moment:
+                self.handle_tasks(self.todos[key])
 
 # todo to make a new class to work with the files, file_worker
 # todo: to create a new class inheriting arrow in order to make its objects hashable

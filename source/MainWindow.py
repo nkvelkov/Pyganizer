@@ -10,7 +10,6 @@ import sys
 from PyQt5.QtWidgets import QMainWindow, QTextEdit, QAction, QApplication
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QTime, QDate
-from alert_dialog import AlertDialog
 import arrow
 from pyganizer import *
 from task import Task, TaskEncoder, as_task
@@ -30,11 +29,15 @@ class IconWidget(QMainWindow):
         self.horizontal_offset = 120
         self.vertical_offset = 270
         self.label_x_offset = 10
+        self.now = arrow.now()
         self.initUI()
-        self.tasks_ical = 'tasks.ics'
-        self.events_ical = 'events.ics'
-        self.pyganizer = Pyganizer("pending_tasks.txt", "active_tasks.txt", self.tasks_ical,
-                                   "pending_events.txt", "active_events.txt", self.events_ical)
+        self.tasks_ical = 'work_files/tasks.ics'
+        self.events_ical = 'work_files/events.ics'
+        self.active_tasks = "work_files/active_tasks.txt"
+        self.active_events = "work_files/active_events.txt"
+
+        self.pyganizer = Pyganizer("work_files/pending_tasks.txt", self.active_tasks, self.tasks_ical,
+                                   "work_files/pending_events.txt", self.active_events, self.events_ical)
         self.pyganizer.execute()
 
     def initUI(self):
@@ -111,6 +114,8 @@ class IconWidget(QMainWindow):
 
     def task_date_time_edit(self):
         self.task_date_time_edit = QDateTimeEdit(self)
+        self.task_date_time_edit.setDate(QDate(self.now.day, self.now.month, self.now.year))
+        self.task_date_time_edit.setTime(QTime(self.now.hour, self.now.minute))
         self.task_date_time_edit.resize(self.task_date_time_edit.sizeHint())
         self.task_date_time_edit.move(self.horizontal_offset, 70)
 
@@ -165,11 +170,15 @@ class IconWidget(QMainWindow):
 
     def event_start_date_time_edit(self):
         self.event_start_date_time_edit = QDateTimeEdit(self)
+        self.event_start_date_time_edit.setDate(QDate(self.now.day, self.now.month, self.now.year))
+        self.event_start_date_time_edit.setTime(QTime(self.now.hour, self.now.minute))
         self.event_start_date_time_edit.resize(self.event_start_date_time_edit.sizeHint())
         self.event_start_date_time_edit.move(self.horizontal_offset, 420)
 
     def event_end_date_time_edit(self):
         self.event_end_date_time_edit = QDateTimeEdit(self)
+        self.event_end_date_time_edit.setDate(QDate(self.now.day, self.now.month, self.now.year))
+        self.event_end_date_time_edit.setTime(QTime(self.now.hour, self.now.minute))
         self.event_end_date_time_edit.resize(self.event_end_date_time_edit.sizeHint())
         self.event_end_date_time_edit.move(self.horizontal_offset, 450)
 
@@ -190,18 +199,6 @@ class IconWidget(QMainWindow):
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
-    '''
-    def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Message',
-            "Are you sure to quit?", QMessageBox.Yes | 
-            QMessageBox.No, QMessageBox.No)
-
-        if reply == QMessageBox.Yes:
-            event.accept()
-        else: 
-            event.ignore()
-            # event.ignore()
-    '''
 
     def events_ical_export_button(self):
         self.events_export_button = QPushButton('ical export', self)
@@ -360,15 +357,15 @@ class IconWidget(QMainWindow):
 
             start_date = self.get_arrow_datetime(current_date, current_time, timezone)
 
-            self.pyganizer.add_task(start_date, name, message, comleteness, priority)
+            self.pyganizer.add_task(start_date, name, message, comleteness, priority, timezone)
             self.alert("Successfully added the task")
 
         self.task_priority.setText("") 
         self.task_completeness.setText("")
         self.task_message.setText("")
         self.task_name.setText("")
-        self.task_date_time_edit.setDate(QDate(0, 0, 0))
-        self.task_date_time_edit.setTime(QTime(0, 0))
+        self.task_date_time_edit.setDate(QDate(self.now.day, self.now.month, self.now.year))
+        self.task_date_time_edit.setTime(QTime(self.now.hour, self.now.minute))
 
     def add_event_func(self):
         name = self.event_name.text()
@@ -387,26 +384,28 @@ class IconWidget(QMainWindow):
             end_datetime = self.get_arrow_datetime(end_date, end_time, timezone)     
 
             try:
-                self.pyganizer.add_event(start_datetime, end_datetime, name, message)
+                self.pyganizer.add_event(start_datetime, end_datetime, name, message, timezone)
                 self.alert("Successfully added the event.")
             except InvalidDateError:
                 self.alert("You entered incorrect datetimes.")
 
         self.event_message.setText("")
         self.event_name.setText("")
-        self.event_start_date_time_edit.setDate(QDate(0, 0, 0))
-        self.event_start_date_time_edit.setTime(QTime(0, 0))
-        self.event_end_date_time_edit.setDate(QDate(0, 0, 0))
-        self.event_end_date_time_edit.setTime(QTime(0, 0))
+        self.event_start_date_time_edit.setDate(QDate(self.now.day, self.now.month, self.now.year))
+        self.event_start_date_time_edit.setTime(QTime(self.now.hour, self.now.minute))
+        self.event_end_date_time_edit.setDate(QDate(self.now.day, self.now.month, self.now.year))
+        self.event_end_date_time_edit.setTime(QTime(self.now.hour, self.now.minute))
 
     def get_arrow_datetime(self, current_date, current_time, timezone):
         arrow_datetime = arrow.Arrow(current_date.year(), current_date.month(),
                 current_date.day(), current_time.hour(),
                 current_time.minute(), current_time.second(), tzinfo=timezone)
+        # arrow_datetime.to(timezone)
+        print(timezone)
         return arrow_datetime
 
     def load_tasks(self):
-        with open("active_tasks.txt", "r") as f:
+        with open("work_files/active_tasks.txt", "r") as f:
             active_tasks = f.readlines()
             self.expose_tasks(active_tasks)
 
@@ -418,7 +417,7 @@ class IconWidget(QMainWindow):
         self.task_table.setText(display_content)
 
     def load_events(self):
-        with open("active_events.txt", "r") as f:
+        with open("work_files/active_events.txt", "r") as f:
             active_events = f.readlines()
             self.expose_events(active_events)
 
@@ -449,6 +448,8 @@ class IconWidget(QMainWindow):
             result = self.pyganizer.add_task_progress(target_id, progress)
             if not result:
                 self.alert("No such id!")
+            else:
+                self.load_tasks()
 
         self.task_id_line_edit.setText("")
         self.add_progress_line_edit.setText("")
@@ -465,6 +466,8 @@ class IconWidget(QMainWindow):
             result = self.pyganizer.set_task_priority(target_id, priority)
             if not result:
                 self.alert("No such id!")
+            else:
+                self.load_tasks()
 
         self.task_id_line_edit.setText("")
         self.add_priority_line_edit.setText("")
@@ -477,6 +480,7 @@ class IconWidget(QMainWindow):
         else:
             target_id = int(target_id)
             result = self.pyganizer.remove_task(target_id)
+            self.load_tasks()
             if not result:
                 self.alert("No such id!")
 
@@ -490,6 +494,7 @@ class IconWidget(QMainWindow):
         else:
             target_id = int(target_id)
             result = self.pyganizer.remove_event(target_id)
+            self.load_events()
             if not result:
                 self.alert("No such id!")
 
@@ -536,6 +541,20 @@ class IconWidget(QMainWindow):
         
     def onEventComboActivated(self, text):
         self.event_combo_text = text
+
+'''
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Message',
+            "Are you sure to quit?", QMessageBox.Yes | 
+            QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            self.pyganizer.terminate()
+            event.accept()
+        else: 
+            event.ignore()
+            # event.ignore()
+'''
 
 if __name__ == '__main__':
 

@@ -5,6 +5,7 @@ import json
 class ArrowEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, arrow.Arrow):
+            obj = obj.to('utc')
             return {"__arrow__": True, "year": obj.year,
                     "month": obj.month, "day": obj.day, "hour": obj.hour,
                     "minute": obj.minute, "second": obj.second}

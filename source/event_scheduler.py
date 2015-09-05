@@ -14,15 +14,16 @@ class EventScheduler:
         self.todos = {}  # should be read from a file
         self.active_events = []
 
-    def add_event(self, start_date, deadline_date, name, message):
-        if self.passed_date(deadline_date) or start_date > deadline_date:
+    def add_event(self, start_date, deadline_date, name, message, timezone):
+        if self.passed_date(deadline_date) or start_date.to('utc') > deadline_date.to('utc'):
             raise InvalidDateError
 
         if self.passed_date(start_date):
-            start_date = arrow.utcnow().to('local')
+            start_date = arrow.now()
+            timezone = 'local'
 
         event = Event(start_date, deadline_date, name,
-                      message, 'pending', self.get_id())
+                      message, 'pending', self.get_id(), timezone)
 
         self.queue_event(event)
 
@@ -41,22 +42,26 @@ class EventScheduler:
         self.todos[date].append(event)
 
     def add_multiple_active_events(self, events):
-        self.active_events.extend(list(events))
+        new = []
         for event in events:
+            event.mode = 'active'
+            new.append(event)
             self.add_event_by_date(event.deadline_datetime, event)
+        self.active_events.extend(new)
 
     def add_multiple_pending_events(self, events):
-        self.active_events.extend(list(events))
         for event in events:
+            event.mode = 'pending'
+            self.add_event_by_date(event.start_datetime, event)
             self.add_event_by_date(event.deadline_datetime, event)
 
     def activate_event(self, event):
-        self.remove_event(event, event.start_datetime)
+        self.remove_event_with_key(event, event.start_datetime)
         event.mode = 'active'
         self.active_events.append(event)
 
     def expire_active_event(self, event):
-        self.remove_event(event, event.deadline_datetime)
+        self.remove_event_with_key(event, event.deadline_datetime)
         self.remove_active_event(event)
 
     def find_active_event(self, target_id):
@@ -65,10 +70,10 @@ class EventScheduler:
                 return todo
         return None
 
-    def remove_event(self, event, key):
+    def remove_event_with_key(self, event, key):
         if key in self.todos.keys():
             if event in self.todos[key]:
-                self.todos[key].pop(self.todos[key].index(todo))
+                self.todos[key].pop(self.todos[key].index(event))
                 self.remove_empty_entries()
 
     def remove_by_id(self, target_id):
@@ -100,18 +105,23 @@ class EventScheduler:
         {key: self.todos[key] for key in keys if self.todos[key] != []}
 
     def passed_date(self, target_date):
-        current_moment = arrow.utcnow().to('local')
-        return target_date < current_moment
+        current_moment = arrow.now()
+        print(current_moment)
+        print(target_date)
+        print(target_date.to('utc') < current_moment.to('utc'))
+        return target_date.to('utc') < current_moment.to('utc')
 
     def get_id(self):
-        with open("event_id.txt", "r") as f:
+        result_id = 1  
+        with open("work_files/event_id.txt", "r") as f:
             saved_id = f.readline()
-            result_id = int(saved_id) + 1
+            if saved_id.isnumeric():
+                result_id = int(saved_id) + 1
 
-            f.truncate()
+        with open("work_files/event_id.txt", "w") as f:
             f.write(str(result_id))
 
-            return result_id
+        return result_id
 
     def remove_active_event(self, event):
         self.active_events.pop(self.active_events.index(event))

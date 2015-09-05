@@ -15,6 +15,9 @@ class FileWorker:
     def add_todo(self, todo):
         with open(self.pending_todos, "a") as f:
             f.write("{}\n".format(todo.encode()))
+        with open(self.pending_todos, "r") as f:
+            r = f.readlines()
+            print(r)
 
     def get_saved_active_todos(self):
         with open(self.active_todos, "r") as f:

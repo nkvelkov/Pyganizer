@@ -16,20 +16,21 @@ from icalendar import Calendar
 class EventOrganizer(EventScheduler):
     def __init__(self, pending_events, active_events, ical_file):
         super().__init__()
-        self.file_worker = FileWorker(pending_events, active_events, ical_file, passed_todos='passed_events.txt')
+        self.file_worker = FileWorker(pending_events, active_events, ical_file, passed_todos='work_files/passed_events.txt')
         self.ical_file = ical_file
 
-    def add_event(self, start_date, deadline_date, name, message):
+    def add_event(self, start_date, deadline_date, name, message, timezone='local'):
         try:
-            event = EventScheduler.add_event(self, start_date, deadline_date, name, message)
+            event = EventScheduler.add_event(self, start_date, deadline_date, name, message, timezone)
             self.file_worker.add_todo(event)
         except InvalidDateError:
             raise
             
     def remove_event(self, target_id):
         result = EventScheduler.remove_by_id(self, target_id)
+        print(result)
         if result:
-            self.file_worker.update_active_file(self.sorted_events())
+            self.file_worker.update_all_files(self.enumerate_todos(), self.sorted_events())
         return result
 
     def load_saved_events(self):
@@ -87,6 +88,8 @@ class EventOrganizer(EventScheduler):
             elif event.mode is 'active':
                 expired.append(event)
 
+        print(active)
+        print(expired)
         self.activate_pending_events(active)
         self.expire_active_events(expired)
 
@@ -103,5 +106,17 @@ class EventOrganizer(EventScheduler):
 
     def export_ical(self):
         self.file_worker.update_ical_file(self.active_events)
+
+    def has_moment(self, moment):
+        for key in self.todos.keys():
+            if key.to('utc') < moment.to('utc') or key.to('utc') is moment.to('utc'):
+                return True
+        return False
+
+    def handle_moment(self, moment):
+        for key in self.todos.keys():
+            if key.to('utc') < moment.to('utc'):
+                print("in handle_moment")
+                self.handle_events(self.todos[key])
 
 

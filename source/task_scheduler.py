@@ -15,21 +15,24 @@ class TaskScheduler:
         self.active_tasks = []
 
     def passed_date(self, target_date):
-        current_moment = arrow.utcnow().to('local')
-        return target_date < current_moment
+        current_moment = arrow.now()
+        return target_date.to('utc') < current_moment.to('utc')
 
-    def append_task(self, start_date, name, message, completeness, priority=1):
-        current_moment = arrow.utcnow().to('local')
+    def append_task(self, start_date, name, message, completeness, priority=1, timezone='local'):
+        current_moment = arrow.now()
 
-        if start_date < current_moment:
+        if start_date.to('utc') < current_moment.to('utc'):
             start_date = current_moment
 
         if not start_date in self.todos.keys():
             self.todos[start_date] = []
 
         target_id = self.get_id()
-        target_task = Task(start_date, name, message, completeness, priority, target_id)
+        target_task = Task(start_date, name, message, completeness, priority, target_id, timezone)
         self.todos[start_date].append(target_task)
+
+        for key in self.todos.keys():
+            print(key)
 
         return target_task
 
@@ -46,7 +49,7 @@ class TaskScheduler:
         task.id = self.get_id()
         self.todos[task.datetime].append(task)
 
-    def activate_task(self, task):
+    def _activate_task(self, task):
         self.remove_pending_task(task)
         self.active_tasks.append(task)
 
@@ -63,15 +66,22 @@ class TaskScheduler:
                 return todo
         return None
 
-    def add_task_progress(self, todo, progress):
+    def update_task(self, todo, progress):
         todo.completeness -= progress
+        print(todo)
         if todo.completeness <= 0:
             self.remove_todo(todo)
+            return None
+        else:
+            return todo
 
     def add_task_progress_by_id(self, target_id, progress):
         task = self.find_active_task(target_id)
         if task is not None:
-            self.add_task_progress(task, progress)
+            self.active_tasks.remove(task)
+            result_task = self.update_task(task, progress)
+            if result_task is not None:
+                self.active_tasks.append(task)
             return True
         return False
 
@@ -82,23 +92,23 @@ class TaskScheduler:
             return True
         return False
 
-    def remove_pending_task(task):
+    def remove_pending_task(self, task):
         key = task.datetime
         if key in self.todos.keys():
-            self.todos[key].pop(self.todos[key].index(todo))
+            self.todos[key].pop(self.todos[key].index(task))
             self.remove_empty_entries()
 
     def remove_by_id(self, target_id):
         task = self.find_active_task(target_id)
         if task is not None:
-            remove_todo(task)
+            self.remove_todo(task)
             return True
         return False
 
     def remove_todo(self, todo):
         key = todo.datetime
 
-        if key in self.todo.keys():
+        if key in self.todos.keys():
             if todo in self.todos[key]:
                 self.todos[key].pop(self.todos[key].index(todo))
                 self.remove_empty_entries()
@@ -116,14 +126,16 @@ class TaskScheduler:
         {key: self.todos[key] for key in keys if self.todos[key] != []}
 
     def get_id(self):
-        with open("task_id.txt", "r") as f:
+        result_id = 1  
+        with open("work_files/task_id.txt", "r") as f:
             saved_id = f.readline()
-            result_id = int(saved_id) + 1
+            if saved_id.isnumeric():
+                result_id = int(saved_id) + 1
 
-            f.truncate()
+        with open("work_files/task_id.txt", "w") as f:
             f.write(str(result_id))
-
-            return result_id
+        
+        return result_id
 
     def remove_active_task(self, task):
         self.active_tasks.pop(self.active_tasks.index(task))

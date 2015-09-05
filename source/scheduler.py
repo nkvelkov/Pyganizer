@@ -13,41 +13,70 @@ class Scheduler:
         self.todos = {}  # should be read from a file
         self.active_tasks = []
         self.active_events = []
+        self.id = 0;
 
     def add_event(self, date, name, message, alert_seconds=0, alert_minutes=0,
                   alert_hours=1, alert_days=0, alert_months=0):
         # date = self.get_date_tuple(date)
+        arrow = arrow.utcnow().to('local')
         alert_moment = self.calculate_date(
             date, alert_seconds,
             alert_hours, alert_days,
             alert_months
         )
 
+        alert_event = Event(alert_moment, name, message, 'active')
+        target_event = Event(date, name, message, 'deadline')
+
+        self.add_chained_events(alert_event, target_event)
+
+    def add_event(self, deadline_date, start_date, name, message):
+        if passed_date(start_date):
+            return False
+
+        alert_event = Event(start_date, name, message, 'active')
+        target_event = Event(deadline_date, name, message, 'deadline')
+
+        self.add_chained_events(alert_event, target_event)
+
+        return True
+
+    def add_chained_events(self, alert_event, target_event):
         if not alert_moment in self.todos.keys():
             self.todos[alert_moment] = []
-            print("ij")
-        alert_event = Event(alert_moment, name, message, 'active')
-        alert_event.deadline_date = date
+        alert_event.deadline_date = deadline_date
+        alert_event.chain_event = target_event
+        alert_event.id = self.get_id()
         self.todos[alert_moment].append(alert_event)
-        print('asdf')
-        print(self.todos)
+
         if not date in self.todos.keys():
             self.todos[date] = []
-        target_event = Event(date, name, message, 'deadline')
-        target_event.alert_event = alert_event
+        target_event.deadline_date = None
+        target_event.chain_event = alert_event
+        target_event.id = self.get_id()
         self.todos[date].append(target_event)
-        print(self.todos)
+
+    def passed_date(self, target_date):
+        current_moment = arrow.utcnow().to('local')
+
+        return target_date < current_moment
 
     def add_task(self, start_date, name, message, completeness, priority=1):
+        if passed_date(start_date):
+            return False
+
         if not start_date in self.todos.keys():
             self.todos[start_date] = []
 
         target_task = Task(start_date, name, message, completeness, priority)
+        target_task.id = self.get_id()
         self.todos[start_date].append(target_task)
+        return True
 
     def insert_task(self, task):
         if not task.date in self.todos.keys():
             self.todos[task.date] = []
+        task.id = self.get_id()
         self.todos[task.date].append(task)
 
     def calculate_date(self, date, alert_seconds=0, alert_minutes=0,
@@ -78,35 +107,58 @@ class Scheduler:
     def add_task_progress_by_name(self, date, name, progress):
         for todo in self.todos[date]:
             if todo.name == name:
-                todo.completeness -= progress
-                if todo.completeness <= 0:
-                    self.remove_by_name(date, todo.name)
+                self.add_task_progress(todo, progress)
+    
+    def add_task_progress_by_id(self, target_id, progress):
+        for key in self.todos.keys():
+            for todo in self.todos[key]:
+                if todo.id == target_id:
+                    add_task_progress(todo, progress)
 
     def remove_todo(self, todo):
         key = todo.date
-        self.todos[key].pop(self.todos[key].index(todo))
 
-        if type(todo) is Task and todo in self.active_tasks:
-            self.remove_active_task(todo)
-        if type(todo) is Event and todo in self.active_events:
-            self.remove_active_event(todo)
+        if type(todo) is Task:
+            self.todos[key].pop(self.todos[key].index(todo))
+            if todo in self.active_tasks:
+                self.remove_active_task(todo)
 
-        keys = self.todos.keys()
-        {key: self.todos[key] for key in keys if self.todos[key] != []}
+        if type(todo) is Event:
+            chain_event = todo.chain_event
+            chain_key = chain_event.date
+            self.todos[chain_key].pop(self.todo[chain_key].index(chain_event))
+            self.todos[key].pop(self.todos[key].index(todo))
 
+            if todo in self.active_events:
+                self.remove_active_event(todo)
+
+            if chain_event in self.active_events:
+                self.remove_active_event(chain_event)
+
+        self.remove_empty_entries()
 
     def remove_by_name(self, key, name):
         for todo in self.todos[key]:
             if todo.name == name:
-                self.todos[key].pop(self.todos[key].index(todo))
-                if type(todo) is Task and todo in self.active_tasks:
-                    self.remove_active_task(todo)
-                if type(todo) is Event and todo in self.active_events:
-                    self.remove_active_event(todo)
+                remove_todo(todo)
+                return True
+        return False
 
+    def remove_by_id(self, target_id):
+        for key in self.todos.keys():
+            for todo in self.todos[key]:
+                if todo.id == target_id:
+                    remove_todo(todo)
+                    return True
+        return False
+
+    def remove_empty_entries(self):
         keys = self.todos.keys()
         {key: self.todos[key] for key in keys if self.todos[key] != []}
 
+    def get_id(self):
+        self.id = self.id + 1
+        return self.id
 
     def stringify(self, key):
         target_todos = self.todos[key]
@@ -159,4 +211,15 @@ class Scheduler:
                 return todo
         return None
 
+    def activate_task(self, task):
+        if not self_has_todo(task):
+            pass
+        self.activate_task.append(task)
+
+    def activate_event(self, event):
+        if not self_has_todo(event):
+            pass
+        self.activate_event.append(event)
+        
+# todo to make a new class to work with the files, file_worker
 # todo: to create a new class inheriting arrow in order to make its objects hashable
