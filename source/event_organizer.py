@@ -28,12 +28,12 @@ class EventOrganizer(EventScheduler):
             
     def remove_event(self, target_id):
         result = EventScheduler.remove_by_id(self, target_id)
-        print(result)
         if result:
             self.file_worker.update_all_files(self.enumerate_todos(), self.sorted_events())
         return result
 
     def load_saved_events(self):
+        '''Should be called when the app starts to filter the saved events'''
         self.load_saved_active_events()
         self.load_saved_pending_events()
 
@@ -57,15 +57,15 @@ class EventOrganizer(EventScheduler):
         self.file_worker.update_all_files(self.enumerate_todos(), self.sorted_events())
 
     def filter_passed_events(self, todos):
-        passed_events = set()
-        active_events = set()
-        pending_events = set()
+        passed_events = []
+        active_events = []
+        pending_events = []
 
         for todo in todos:
             if self.passed_date(todo.deadline_datetime):
-                passed_events.add(todo)
+                passed_events.append(todo)
             elif self.passed_date(todo.start_datetime):
-                active_events.add(todo)
+                active_events.append(todo)
             else:
                 pending_events.add(todo)
         return (active_events, pending_events, passed_events)
@@ -79,6 +79,7 @@ class EventOrganizer(EventScheduler):
         self.file_worker.update_all_files(self.enumerate_todos(), self.sorted_events())
 
     def handle_events(self, events):
+        '''This function does the actual work with the events.'''
         expired = []
         active = []
 
@@ -114,6 +115,7 @@ class EventOrganizer(EventScheduler):
         return False
 
     def handle_moment(self, moment):
+        '''This function should be called when the moment has just happened.'''
         for key in self.todos.keys():
             if key.to('utc') < moment.to('utc'):
                 print("in handle_moment")

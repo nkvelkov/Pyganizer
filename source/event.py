@@ -4,15 +4,17 @@ from icalendar import Calendar
 import json
 import arrow
 
+
 class Event:
-    def __init__(self, start_datetime, deadline_datetime, name, message, mode, eid, timezome):
+    def __init__(self, start_datetime, deadline_datetime,
+                 name, message, mode, eid, timezone):
         self.start_datetime = start_datetime
         self.deadline_datetime = deadline_datetime
         self.name = name
         self.message = message
         self.mode = mode
         self.eid = eid
-        self.timezome = timezome
+        self.timezone = timezone
 
     def encode(self):
         return json.dumps(self, cls=EventEncoder)
@@ -23,10 +25,17 @@ class Event:
 
     def __str__(self):
         return "id: {}, starts: {}, ends: {}, name: {}, message: {}".format(
-                self.eid, self.start_datetime.humanize(),
-                self.deadline_datetime.humanize(),
-                self.name, self.message
-                )
+            self.eid, self.start_datetime.humanize(),
+            self.deadline_datetime.humanize(),
+            self.name, self.message
+        )
+
+    def __eq__(self, other):
+        return (self.start_datetime == other.start_datetime
+                and self.name == other.name and self.message == other.message
+                and self.deadline_datetime == other.deadline_datetime
+                and self.mode == other.mode and self.eid == other.eid
+                and self.timezone == other.timezone)
 
     def to_ical(self):
         ical_event = icalendar.Event()
@@ -37,18 +46,20 @@ class Event:
 
         return ical_event
 
+
 class EventEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Event):
             start_datetime = json.dumps(obj.start_datetime, cls=ArrowEncoder)
-            deadline_datetime = json.dumps(obj.deadline_datetime, cls=ArrowEncoder)
+            deadline_datetime = json.dumps(obj.deadline_datetime,
+                                           cls=ArrowEncoder)
 
             return {"__event__": True,
-                   "start_datetime": start_datetime,
-                   "deadline_datetime": deadline_datetime,
-                   "name": obj.name, "message": obj.message,
-                   "mode": obj.mode, "eid": obj.eid,
-                   "timezome": obj.timezome}
+                    "start_datetime": start_datetime,
+                    "deadline_datetime": deadline_datetime,
+                    "name": obj.name, "message": obj.message,
+                    "mode": obj.mode, "eid": obj.eid,
+                    "timezone": obj.timezone}
 
         return json.JSONEncoder.default(self, obj)
 
@@ -56,14 +67,19 @@ class EventEncoder(json.JSONEncoder):
 def as_event(dct):
     if '__event__' in dct:
         dct.pop('__event__')
-
-        decoded_datetime = json.loads(dct['start_datetime'], object_hook=as_arrow)
-        decoded_datetime.to(dct["timezome"])
+        decoded_datetime = json.loads(
+            dct['start_datetime'],
+            object_hook=as_arrow
+        )
+        decoded_datetime.to(dct["timezone"])
         dct['start_datetime'] = decoded_datetime
 
-        decoded_datetime = json.loads(dct['deadline_datetime'], object_hook=as_arrow)
-        decoded_datetime.to(dct["timezome"])       
+        decoded_datetime = json.loads(
+            dct['deadline_datetime'],
+            object_hook=as_arrow
+        )
+        decoded_datetime.to(dct["timezone"])
         dct['deadline_datetime'] = decoded_datetime
+
         return Event(**dct)
     return dct
-

@@ -14,25 +14,23 @@ class TaskScheduler:
         self.todos = {}
         self.active_tasks = []
 
-    def passed_date(self, target_date):
-        current_moment = arrow.now()
-        return target_date.to('utc') < current_moment.to('utc')
-
-    def append_task(self, start_date, name, message, completeness, priority=1, timezone='local'):
+    def append_task(self, start_date, name, message,
+                    completeness, priority=1,
+                    timezone='local'):
         current_moment = arrow.now()
 
         if start_date.to('utc') < current_moment.to('utc'):
             start_date = current_moment
+            timezone = 'local'
 
         if not start_date in self.todos.keys():
             self.todos[start_date] = []
 
         target_id = self.get_id()
-        target_task = Task(start_date, name, message, completeness, priority, target_id, timezone)
+        target_task = Task(start_date, name, message,
+                           completeness, priority,
+                           target_id, timezone)
         self.todos[start_date].append(target_task)
-
-        for key in self.todos.keys():
-            print(key)
 
         return target_task
 
@@ -46,7 +44,7 @@ class TaskScheduler:
     def insert_task(self, task):
         if not task.datetime in self.todos.keys():
             self.todos[task.datetime] = []
-        task.id = self.get_id()
+        task.tid = self.get_id()
         self.todos[task.datetime].append(task)
 
     def _activate_task(self, task):
@@ -68,7 +66,6 @@ class TaskScheduler:
 
     def update_task(self, todo, progress):
         todo.completeness -= progress
-        print(todo)
         if todo.completeness <= 0:
             self.remove_todo(todo)
             return None
@@ -107,7 +104,6 @@ class TaskScheduler:
 
     def remove_todo(self, todo):
         key = todo.datetime
-
         if key in self.todos.keys():
             if todo in self.todos[key]:
                 self.todos[key].pop(self.todos[key].index(todo))
@@ -121,12 +117,8 @@ class TaskScheduler:
             if todo.name == name:
                 self.add_task_progress(todo, progress)
 
-    def remove_empty_entries(self):
-        keys = self.todos.keys()
-        {key: self.todos[key] for key in keys if self.todos[key] != []}
-
     def get_id(self):
-        result_id = 1  
+        result_id = 1
         with open("work_files/task_id.txt", "r") as f:
             saved_id = f.readline()
             if saved_id.isnumeric():
@@ -134,29 +126,39 @@ class TaskScheduler:
 
         with open("work_files/task_id.txt", "w") as f:
             f.write(str(result_id))
-        
+
         return result_id
 
     def remove_active_task(self, task):
         self.active_tasks.pop(self.active_tasks.index(task))
 
+    def remove_empty_entries(self):
+        keys = self.todos.keys()
+        self.todos = {
+            key: self.todos[key] for key in keys if self.todos[key] != []
+        }
+
     def enumerate_todos(self):
-        result = set()
+        result = []
         for holder in self.todos.values():
             for todo in holder:
-                result.add(todo)
+                result.append(todo)
         return result
+
+    def passed_date(self, target_date):
+        current_moment = arrow.now()
+        return target_date.to('utc') < current_moment.to('utc')
+
+    def enumerate_todos(self):
+        result = []
+        for holder in self.todos.values():
+            for todo in holder:
+                result.append(todo)
+        return result
+
+    def passed_date(self, target_date):
+        current_moment = arrow.now()
+        return target_date.to('utc') < current_moment.to('utc')
 
     def passed_todo(self, task):
         return self.passed_date(task.datetime)
-
-    def remove_by_name(self, key, name):
-        for todo in self.todos[key]:
-            if todo.name == name:
-                remove_todo(todo)
-                return True
-        return False
-
-
-# todo to make a new class to work with the files, file_worker
-# todo: to create a new class inheriting arrow in order to make its objects hashable

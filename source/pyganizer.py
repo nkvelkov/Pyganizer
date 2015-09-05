@@ -12,10 +12,14 @@ class Pyganizer():
                  ical_tasks_file, pending_events_file,
                  active_events_file, ical_events_file):
         self.termination_flag = False
-        self.task_organizer = TaskOrganizer(pending_tasks_file, active_tasks_file, ical_tasks_file)
+        self.task_organizer = TaskOrganizer(pending_tasks_file,
+                                            active_tasks_file,
+                                            ical_tasks_file)
         self.task_lock = threading.Lock()
 
-        self.event_organizer = EventOrganizer(pending_events_file, active_events_file, ical_events_file)
+        self.event_organizer = EventOrganizer(pending_events_file,
+                                              active_events_file,
+                                              ical_events_file)
         self.event_lock = threading.Lock()
 
         self.prepare_tasks()
@@ -53,32 +57,36 @@ class Pyganizer():
         self.task_organizer.load_saved_tasks()
         self.task_lock.release()
 
-    def add_task(self, start_date, name, message, comleteness, priority, timezone='local'):
+    def add_task(self, start_date, name,
+                 message, comleteness,
+                 priority, timezone='local'):
         self.task_lock.acquire()
-        self.task_organizer.add_task(start_date, name, message, comleteness, priority, timezone)
+        self.task_organizer.add_task(start_date, name,
+                                     message, comleteness,
+                                     priority, timezone)
         self.task_lock.release()
 
     def remove_task(self, tid):
         result = True
         self.task_lock.acquire()
-        result = self.task_organizer.remove_task(tid) 
+        result = self.task_organizer.remove_task(tid)
         self.task_lock.release()
         return result
 
     def set_task_priority(self, tid, priority):
         result = True
         self.task_lock.acquire()
-        result = self.task_organizer.set_task_priority(tid, priority) 
+        result = self.task_organizer.set_task_priority(tid, priority)
         self.task_lock.release()
         return result
 
     def add_task_progress(self, tid, progress):
         result = True
         self.task_lock.acquire()
-        result = self.task_organizer.add_task_progress(tid, progress) 
+        result = self.task_organizer.add_task_progress(tid, progress)
         self.task_lock.release()
         return result
-    
+
     def export_tasks_ical(self):
         self.task_lock.acquire()
         self.task_organizer.export_ical()
@@ -86,13 +94,17 @@ class Pyganizer():
 
     def prepare_events(self):
         self.event_lock.acquire()
-        self.event_organizer.load_saved_events() 
+        self.event_organizer.load_saved_events()
         self.event_lock.release()
 
-    def add_event(self, start_datetime, end_datetime, name, message, timezone='local'):
+    def add_event(self, start_datetime,
+                  end_datetime, name,
+                  message, timezone='local'):
         self.event_lock.acquire()
         try:
-            self.event_organizer.add_event(start_datetime, end_datetime, name, message, timezone) 
+            self.event_organizer.add_event(start_datetime,
+                                           end_datetime, name,
+                                           message, timezone)
         except InvalidDateError:
             raise
         finally:
@@ -101,19 +113,14 @@ class Pyganizer():
     def remove_event(self, eid):
         result = True
         self.event_lock.acquire()
-        result = self.event_organizer.remove_event(eid) 
+        result = self.event_organizer.remove_event(eid)
         self.event_lock.release()
         return result
 
     def export_events_ical(self):
         self.event_lock.acquire()
-        self.event_organizer.export_ical() 
+        self.event_organizer.export_ical()
         self.event_lock.release()
 
-    # to check that out
     def __del__(self):
-        print("terminating the Pyganizer")
         self.terminate()
-
-# self.add_saved_tasks()
-# to create destructor

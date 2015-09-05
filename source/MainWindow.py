@@ -1,14 +1,10 @@
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QTextBrowser, QDateTimeEdit, QTimeEdit, QDateEdit
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QWidget, QToolTip, 
     QPushButton, QApplication)
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QWidget, QLineEdit, QTextEdit, QDesktopWidget, QApplication, QMessageBox
 import sys
-from PyQt5.QtWidgets import QMainWindow, QTextEdit, QAction, QApplication
-from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QTime, QDate
 import arrow
 from pyganizer import *
@@ -542,19 +538,17 @@ class IconWidget(QMainWindow):
     def onEventComboActivated(self, text):
         self.event_combo_text = text
 
-'''
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message',
-            "Are you sure to quit?", QMessageBox.Yes | 
+            "Are you sure to quit?", QMessageBox.Yes |
             QMessageBox.No, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
             self.pyganizer.terminate()
             event.accept()
-        else: 
+        else:
             event.ignore()
             # event.ignore()
-'''
 
 if __name__ == '__main__':
 
